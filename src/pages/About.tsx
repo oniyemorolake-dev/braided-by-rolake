@@ -45,6 +45,14 @@ export function About() {
             >
               Follow {CONFIG.instagram}
             </a>
+            <a
+              href={CONFIG.tiktokUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary"
+            >
+              TikTok {CONFIG.tiktok}
+            </a>
           </div>
         </div>
 
@@ -71,7 +79,7 @@ export function About() {
                 Text / phone
               </p>
               <a
-                href={`tel:${CONTACT_PHONE.replace(/\s/g, '')}`}
+                href={`tel:${CONTACT_PHONE.replace(/\D/g, '')}`}
                 className="mt-1 block font-medium text-accent hover:underline"
               >
                 {CONTACT_PHONE}
@@ -88,6 +96,20 @@ export function About() {
             >
               {CONFIG.instagram}
             </a>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">TikTok</p>
+            <a
+              href={CONFIG.tiktokUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block font-medium text-accent hover:underline"
+            >
+              {CONFIG.tiktok}
+            </a>
+            <p className="mt-1 text-xs text-brand/50">
+              Pics &amp; videos of my work — message me for more info.
+            </p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">Hours</p>

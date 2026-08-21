@@ -104,6 +104,8 @@ export interface BusinessConfig {
   studioAddress: string
   instagram: string
   instagramUrl: string
+  tiktok: string
+  tiktokUrl: string
   email: string
   phoneDisplay: string
   contactPhone: string
@@ -131,8 +133,8 @@ export interface BusinessConfig {
 /** Interac e-Transfer destination for deposits */
 export const ETRANSFER_EMAIL = 'oniyemorolake@gmail.com'
 
-/** Client-facing text/SMS number - set Rolake's real number here */
-export const CONTACT_PHONE = ''
+/** Client-facing text/SMS number */
+export const CONTACT_PHONE = '587-990-8645'
 
 /** Minimum notice (hours) to cancel or reschedule */
 export const CANCELLATION_HOURS = 48
@@ -172,6 +174,8 @@ export const CONFIG: BusinessConfig = {
   studioAddress: 'Calgary, AB ? full street address shared once your deposit is received',
   instagram: '@tgm.byrolake',
   instagramUrl: 'https://www.instagram.com/tgm.byrolake',
+  tiktok: '@tgm.byrolake',
+  tiktokUrl: 'https://www.tiktok.com/@tgm.byrolake',
   email: 'mowebsiteco@gmail.com',
   phoneDisplay: CONTACT_PHONE || 'Text or email after booking',
   contactPhone: CONTACT_PHONE,
@@ -425,6 +429,28 @@ export const SERVICES: Service[] = [
       'Neat feed-in cornrows that grow gracefully into your length. Great for workouts, travel, or a sleek look.',
     minOffer: 55,
     hasSizes: false,
+  },
+  {
+    id: 'half-cornrows',
+    name: 'Half Cornrows',
+    price: 50,
+    durationHours: 1.5,
+    description:
+      'Cornrows on half the head with the rest left out or styled simply ? quick, cute, and easy to maintain. Design details welcome.',
+    minOffer: 40,
+    hasSizes: false,
+    featured: true,
+  },
+  {
+    id: 'pick-and-drop',
+    name: 'Pick and Drop',
+    price: 110,
+    durationHours: 3.5,
+    description:
+      'Cornrow base with braids dropped at intervals for a layered, freestyle look. Great for a bold finish without a full all-over braid set.',
+    minOffer: 85,
+    hasSizes: true,
+    featured: true,
   },
   {
     id: 'stitch',

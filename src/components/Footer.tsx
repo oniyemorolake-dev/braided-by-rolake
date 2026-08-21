@@ -52,12 +52,31 @@ export function Footer() {
           <ul className="mt-3 space-y-2 text-sm text-brand/80">
             <li>
               <a
+                href={`tel:${CONFIG.contactPhone.replace(/\D/g, '')}`}
+                className="font-medium text-accent hover:underline"
+              >
+                {CONFIG.phoneDisplay}
+              </a>
+              <span className="block text-xs text-brand/50">Text or call for more info</span>
+            </li>
+            <li>
+              <a
                 href={CONFIG.instagramUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-accent hover:underline"
               >
-                {CONFIG.instagram}
+                IG {CONFIG.instagram}
+              </a>
+            </li>
+            <li>
+              <a
+                href={CONFIG.tiktokUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-accent hover:underline"
+              >
+                TikTok {CONFIG.tiktok}
               </a>
             </li>
             <li>
@@ -66,7 +85,8 @@ export function Footer() {
               </a>
             </li>
             <li className="text-brand/60">
-              Home studio in {CONFIG.city}. Full address shared once your booking is confirmed.
+              See pics &amp; videos on Instagram or TikTok. Home studio in {CONFIG.city} — full
+              address shared once your booking is confirmed.
             </li>
           </ul>
         </div>
