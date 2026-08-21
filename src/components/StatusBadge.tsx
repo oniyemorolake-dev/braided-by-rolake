@@ -8,6 +8,10 @@ const styles: Record<
     label: 'Confirmed',
     className: 'bg-emerald-100 text-emerald-800',
   },
+  awaiting_deposit: {
+    label: 'Awaiting deposit',
+    className: 'bg-violet-100 text-violet-900',
+  },
   pending: {
     label: 'Pending',
     className: 'bg-amber-100 text-amber-900',

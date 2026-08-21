@@ -13,14 +13,6 @@ interface ServiceCardProps {
 export function ServiceCard({ service, compact }: ServiceCardProps) {
   return (
     <article className="card-soft flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
-      <div className="relative aspect-[4/3] overflow-hidden bg-lilac">
-        <img
-          src={service.image}
-          alt={service.name}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      </div>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-xl font-semibold text-brand sm:text-2xl">

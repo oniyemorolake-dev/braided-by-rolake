@@ -59,7 +59,10 @@ interface BookingContextValue {
   counterOffer: (id: string, amount: number) => Promise<void>
   clientAcceptCounter: (id: string) => Promise<void>
   clientWalkAway: (id: string) => Promise<void>
+  /** Client soft-ack that e-Transfer was sent (does not confirm booking) */
   markDepositPaid: (id: string) => Promise<void>
+  /** Admin: deposit received → status confirmed */
+  markDepositReceived: (id: string) => Promise<void>
   getBooking: (id: string) => Booking | undefined
   clearAllBookings: () => Promise<void>
 }
@@ -157,7 +160,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       email: input.email.trim(),
       price,
       type: 'listed',
-      status: 'confirmed',
+      status: 'awaiting_deposit',
       size,
       lengthId,
       addonIds,
@@ -230,7 +233,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     if (!current) return
     const finalPrice = current.counterAmount ?? current.offerAmount ?? current.price
     const saved = await updateBookingRemote(id, {
-      status: 'confirmed' as BookingStatus,
+      status: 'awaiting_deposit' as BookingStatus,
       price: finalPrice,
     })
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
@@ -254,7 +257,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     const current = (await loadBookings()).find((b) => b.id === id)
     if (!current || current.counterAmount == null) return
     const saved = await updateBookingRemote(id, {
-      status: 'confirmed',
+      status: 'awaiting_deposit',
       price: current.counterAmount,
     })
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
@@ -269,6 +272,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const markDepositPaid = useCallback(async (id: string) => {
     const saved = await updateBookingRemote(id, { depositPaid: true })
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+  }, [])
+
+  const markDepositReceived = useCallback(async (id: string) => {
+    const saved = await updateBookingRemote(id, {
+      status: 'confirmed' as BookingStatus,
+      depositPaid: true,
+    })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+    void notifyOwner(saved)
   }, [])
 
   const getBooking = useCallback(
@@ -295,6 +307,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       clientAcceptCounter,
       clientWalkAway,
       markDepositPaid,
+      markDepositReceived,
       getBooking,
       clearAllBookings,
     }),
@@ -310,6 +323,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       clientAcceptCounter,
       clientWalkAway,
       markDepositPaid,
+      markDepositReceived,
       getBooking,
       clearAllBookings,
     ],

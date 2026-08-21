@@ -13,6 +13,11 @@ import {
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { StatusBadge } from '../components/StatusBadge'
+import {
+  CancelNoticeLine,
+  DepositInstructions,
+  PrepInstructionsBlock,
+} from '../components/BookingNotices'
 
 export function Status() {
   const { id } = useParams<{ id: string }>()
@@ -25,7 +30,7 @@ export function Status() {
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="font-display text-3xl font-semibold text-brand">Booking not found</h1>
         <p className="mt-2 text-sm text-brand/60">
-          This link may be from another device or browser — bookings are stored locally for now.
+          This link may be from another device or browser — try refreshing, or book again if needed.
         </p>
         <Link to="/book" className="btn-primary mt-6 inline-flex">
           Book again
@@ -36,36 +41,37 @@ export function Status() {
 
   const service = getServiceById(booking.serviceId)
   const isConfirmed = booking.status === 'confirmed'
+  const isAwaitingDeposit = booking.status === 'awaiting_deposit'
   const isCountered = booking.status === 'countered'
-  const needsDeposit = isConfirmed && !booking.depositPaid
   const deposit = booking.depositAmount ?? CONFIG.depositAmount
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-      <div className="card-soft p-6">
+      <div className="card-soft space-y-5 p-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-3xl font-semibold text-brand">
-            {needsDeposit ? 'Pay your deposit' : 'Your booking'}
+            {isAwaitingDeposit
+              ? 'Awaiting deposit'
+              : isConfirmed
+                ? 'Confirmed'
+                : 'Your booking'}
           </h1>
           <StatusBadge status={booking.status} />
         </div>
 
-        <p className="mt-2 text-sm text-brand/65">
-          {needsDeposit
-            ? 'Send your Interac e-Transfer, then confirm below to finish.'
-            : 'Status updates live as Rolake reviews your request: Pending → Accepted / Countered / Declined → Confirmed.'}
+        <p className="text-sm text-brand/65">
+          {isAwaitingDeposit &&
+            `Send your ${formatPrice(deposit)} Interac e-Transfer to ${CONFIG.depositEmail}. Your booking becomes Confirmed once Rolake marks the deposit received. Remaining balance is paid in person.`}
+          {isConfirmed &&
+            'Your deposit was received and your appointment is confirmed. See prep tips below.'}
+          {!isAwaitingDeposit &&
+            !isConfirmed &&
+            'Status updates as Rolake reviews your request: Pending → Accepted → Awaiting deposit → Confirmed.'}
         </p>
 
-        {needsDeposit && (
-          <div className="mt-5 rounded-2xl bg-accent px-5 py-5 text-center text-white">
-            <p className="text-sm text-white/80">Send</p>
-            <p className="font-display text-4xl font-semibold">{formatPrice(deposit)}</p>
-            <p className="mt-1 text-sm text-white/85">to {CONFIG.depositEmail}</p>
-            <p className="mt-2 text-xs text-white/75">{CONFIG.depositInstructions}</p>
-          </div>
-        )}
+        {isAwaitingDeposit && <DepositInstructions amount={deposit} />}
 
-        <dl className="mt-6 space-y-3 text-sm">
+        <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
           {booking.size && <Row label="Size" value={formatSizeLabel(booking.size)} />}
           <Row
@@ -88,15 +94,19 @@ export function Status() {
           {booking.counterAmount != null && (
             <Row label="Counter offer" value={formatPrice(booking.counterAmount)} />
           )}
-          <Row
-            label="Deposit"
-            value={
-              booking.depositPaid
-                ? `${formatPrice(deposit)} · marked sent`
-                : formatPrice(deposit)
-            }
-          />
-          {isConfirmed && booking.depositPaid && !booking.mobileService && (
+          {(isAwaitingDeposit || isConfirmed) && (
+            <Row
+              label="Deposit"
+              value={
+                isConfirmed
+                  ? `${formatPrice(deposit)} · received`
+                  : booking.depositPaid
+                    ? `${formatPrice(deposit)} · marked sent`
+                    : formatPrice(deposit)
+              }
+            />
+          )}
+          {isConfirmed && !booking.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
                 Studio address
@@ -104,7 +114,7 @@ export function Status() {
               <p className="mt-1 font-medium text-brand">{CONFIG.studioAddress}</p>
             </div>
           )}
-          {isConfirmed && booking.depositPaid && booking.mobileService && (
+          {isConfirmed && booking.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
                 Mobile appointment
@@ -116,8 +126,15 @@ export function Status() {
           )}
         </dl>
 
-        {needsDeposit && (
-          <div className="mt-6 space-y-3">
+        {(isAwaitingDeposit || isConfirmed) && (
+          <>
+            <PrepInstructionsBlock />
+            <CancelNoticeLine />
+          </>
+        )}
+
+        {isAwaitingDeposit && !booking.depositPaid && (
+          <div className="space-y-3">
             <label className="flex cursor-pointer items-start gap-3 text-sm text-brand/80">
               <input
                 type="checkbox"
@@ -129,17 +146,17 @@ export function Status() {
             </label>
             <button
               type="button"
-              className="btn-primary w-full"
+              className="btn-secondary w-full"
               disabled={!ack}
               onClick={() => void markDepositPaid(booking.id)}
             >
-              Confirm booking
+              I’ve sent the deposit
             </button>
           </div>
         )}
 
         {isCountered && (
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <button
               type="button"
               className="btn-primary w-full"
@@ -157,7 +174,7 @@ export function Status() {
           </div>
         )}
 
-        <Link to="/" className="btn-secondary mt-6 inline-flex w-full">
+        <Link to="/" className="btn-secondary inline-flex w-full">
           Back to home
         </Link>
       </div>

@@ -31,9 +31,14 @@ import {
 import { useBookings } from '../context/BookingContext'
 import { getAvailableSlots, getBookableDates } from '../lib/scheduling'
 import { StatusBadge } from '../components/StatusBadge'
+import {
+  CancelNoticeLine,
+  DepositInstructions,
+  PrepInstructionsBlock,
+} from '../components/BookingNotices'
 
 type Mode = 'listed' | 'offer'
-type Step = 'service' | 'options' | 'schedule' | 'details' | 'deposit' | 'done'
+type Step = 'service' | 'options' | 'schedule' | 'details' | 'done'
 
 export function Booking() {
   const [params] = useSearchParams()
@@ -44,7 +49,6 @@ export function Booking() {
     createOffer,
     clientAcceptCounter,
     clientWalkAway,
-    markDepositPaid,
   } = useBookings()
 
   const initialService = params.get('service') || ''
@@ -175,31 +179,13 @@ export function Booking() {
         })
       }
       setResult(booking)
-      // Listed bookings (and accepted offers later) go to deposit step next
-      if (booking.status === 'confirmed') {
-        setStep('deposit')
-      } else {
-        setStep('done')
-      }
+      // Listed price + accepted offers land on confirmation (awaiting deposit)
+      setStep('done')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (step === 'deposit' && result) {
-    return (
-      <DepositPayView
-        booking={result}
-        onConfirm={() => {
-          void markDepositPaid(result.id).then(() => {
-            setResult({ ...result, depositPaid: true })
-            setStep('done')
-          })
-        }}
-      />
-    )
   }
 
   if (step === 'done' && result) {
@@ -208,14 +194,12 @@ export function Booking() {
         booking={result}
         onAcceptCounter={() => {
           void clientAcceptCounter(result.id).then(() => {
-            const next = {
+            setResult({
               ...result,
-              status: 'confirmed' as const,
+              status: 'awaiting_deposit',
               price: result.counterAmount ?? result.price,
               depositPaid: false,
-            }
-            setResult(next)
-            setStep('deposit')
+            })
           })
         }}
         onWalkAway={() => {
@@ -223,7 +207,6 @@ export function Booking() {
             setResult({ ...result, status: 'declined' })
           })
         }}
-        onPayDeposit={() => setStep('deposit')}
       />
     )
   }
@@ -233,8 +216,7 @@ export function Booking() {
     options: 1,
     schedule: 2,
     details: 3,
-    deposit: 4,
-    done: 5,
+    done: 4,
   } as const
 
   return (
@@ -244,7 +226,8 @@ export function Booking() {
       </h1>
       <p className="mt-2 text-sm text-brand/65">
         Home studio in {CONFIG.city}. A {formatPrice(CONFIG.depositAmount)} Interac e-Transfer
-        deposit holds your spot (no card fees).
+        deposit is required to secure your spot — booking is confirmed once it&apos;s received
+        (remaining balance paid in person).
       </p>
 
       <ol className="mt-6 flex gap-1.5 text-[10px] font-medium text-brand/50 sm:gap-2 sm:text-xs">
@@ -254,7 +237,6 @@ export function Booking() {
             ['options', 'Size'],
             ['schedule', 'When'],
             ['details', 'Details'],
-            ['deposit', 'Deposit'],
           ] as const
         ).map(([key, label], i) => {
           const current = stepOrder[step]
@@ -310,11 +292,6 @@ export function Booking() {
                   onClick={() => selectService(s.id)}
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
                 >
-                  <img
-                    src={s.image}
-                    alt=""
-                    className="h-14 w-14 rounded-xl bg-lilac object-cover"
-                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand">{s.name}</p>
                     <p className="text-xs text-brand/55">
@@ -340,11 +317,6 @@ export function Booking() {
                   onClick={() => selectService(s.id)}
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
                 >
-                  <img
-                    src={s.image}
-                    alt=""
-                    className="h-14 w-14 rounded-xl bg-lilac object-cover"
-                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand">{s.name}</p>
                     <p className="text-xs text-brand/55">
@@ -370,11 +342,6 @@ export function Booking() {
                   onClick={() => selectService(s.id)}
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
                 >
-                  <img
-                    src={s.image}
-                    alt=""
-                    className="h-14 w-14 rounded-xl bg-lilac object-cover"
-                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand">{s.name}</p>
                     <p className="text-xs text-brand/55">
@@ -392,7 +359,6 @@ export function Booking() {
       {step === 'options' && service && (
         <div className="mt-6 space-y-5">
           <div className="card-soft flex items-center gap-3 p-3">
-            <img src={service.image} alt="" className="h-12 w-12 rounded-xl object-cover" />
             <div className="flex-1">
               <p className="font-semibold text-brand">{service.name}</p>
               <p className="text-xs text-brand/55">Base from {formatPrice(service.price)}</p>
@@ -842,7 +808,8 @@ export function Booking() {
 
           <p className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
             By booking, you agree that hair will be <strong>pre-stretched</strong>, a{' '}
-            <strong>{formatPrice(CONFIG.depositAmount)} deposit</strong> is required, and extensions
+            <strong>{formatPrice(CONFIG.depositAmount)} e-Transfer deposit</strong> is required to
+            secure the appointment (confirmed once received; balance paid in person), and extensions
             are provided <strong>only on request</strong>.
           </p>
 
@@ -854,7 +821,7 @@ export function Booking() {
             {submitting
               ? 'Submitting…'
               : mode === 'listed'
-                ? 'Continue to pay deposit'
+                ? 'Confirm booking'
                 : 'Send offer'}
           </button>
         </form>
@@ -863,127 +830,22 @@ export function Booking() {
   )
 }
 
-function DepositPayView({
-  booking,
-  onConfirm,
-}: {
-  booking: Booking
-  onConfirm: () => void
-}) {
-  const { getBooking } = useBookings()
-  const live = getBooking(booking.id) ?? booking
-  const service = getServiceById(live.serviceId)
-  const deposit = live.depositAmount ?? CONFIG.depositAmount
-  const [copied, setCopied] = useState(false)
-  const [acknowledged, setAcknowledged] = useState(false)
-
-  async function copyEmail() {
-    try {
-      await navigator.clipboard.writeText(CONFIG.depositEmail)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      setCopied(false)
-    }
-  }
-
-  return (
-    <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-      <div className="card-soft animate-fade-up p-6 sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-accent">Step 5 of 5</p>
-        <h1 className="mt-1 font-display text-3xl font-semibold text-brand">
-          Pay your deposit
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-brand/70">
-          Your spot is held. Send the deposit by Interac e-Transfer, then tap confirm below so we
-          know it&apos;s on the way.
-        </p>
-
-        <div className="mt-6 rounded-2xl bg-accent px-5 py-6 text-center text-white">
-          <p className="text-sm font-medium text-white/80">Amount to send</p>
-          <p className="mt-1 font-display text-4xl font-semibold">{formatPrice(deposit)}</p>
-          <p className="mt-2 text-sm text-white/85">Interac e-Transfer</p>
-        </div>
-
-        <div className="mt-5 space-y-3 rounded-2xl bg-lilac/60 px-4 py-4 text-sm">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
-              Send to
-            </p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="font-semibold text-brand break-all">{CONFIG.depositEmail}</p>
-              <button
-                type="button"
-                onClick={copyEmail}
-                className="rounded-full border border-brand/15 bg-white px-3 py-1 text-xs font-semibold text-accent"
-              >
-                {copied ? 'Copied!' : 'Copy email'}
-              </button>
-            </div>
-          </div>
-          <p className="text-brand/65">{CONFIG.depositInstructions}</p>
-          <p className="text-brand/65">
-            Message example:{' '}
-            <span className="font-medium text-brand">
-              {live.clientName} · {formatDateLabel(live.date)}
-            </span>
-          </p>
-        </div>
-
-        <dl className="mt-6 space-y-2 text-sm">
-          <Row label="Style" value={service?.name ?? ''} />
-          <Row
-            label="When"
-            value={`${formatDateLabel(live.date)} · ${formatSlotLabel(live.slot)}`}
-          />
-          <Row label="Total style" value={formatPrice(live.price)} />
-        </dl>
-
-        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-brand/10 bg-white px-3 py-3 text-sm text-brand/80">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
-            checked={acknowledged}
-            onChange={(e) => setAcknowledged(e.target.checked)}
-          />
-          <span>
-            I have sent (or will send right now) the {formatPrice(deposit)} e-Transfer deposit to{' '}
-            {CONFIG.depositEmail}.
-          </span>
-        </label>
-
-        <button
-          type="button"
-          className="btn-primary mt-4 w-full"
-          disabled={!acknowledged}
-          onClick={onConfirm}
-        >
-          Confirm booking
-        </button>
-        <p className="mt-3 text-center text-xs text-brand/45">
-          Studio address is shown on the next screen after you confirm.
-        </p>
-      </div>
-    </div>
-  )
-}
-
 function ConfirmationView({
   booking,
   onAcceptCounter,
   onWalkAway,
-  onPayDeposit,
 }: {
   booking: Booking
   onAcceptCounter: () => void
   onWalkAway: () => void
-  onPayDeposit: () => void
 }) {
-  const { getBooking } = useBookings()
+  const { getBooking, markDepositPaid } = useBookings()
   const live = getBooking(booking.id) ?? booking
   const service = getServiceById(live.serviceId)
+  const [ack, setAck] = useState(false)
 
   const isConfirmed = live.status === 'confirmed'
+  const isAwaitingDeposit = live.status === 'awaiting_deposit'
   const isPending = live.status === 'pending'
   const isCountered = live.status === 'countered'
   const isDeclined = live.status === 'declined'
@@ -995,35 +857,33 @@ function ConfirmationView({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-      <div className="card-soft animate-fade-up p-6 sm:p-8">
+      <div className="card-soft animate-fade-up space-y-5 p-6 sm:p-8">
         <div className="flex items-center justify-between gap-2">
           <h1 className="font-display text-3xl font-semibold text-brand">
             {isConfirmed
-              ? live.depositPaid
-                ? 'You are booked!'
-                : 'Almost done'
-              : isPending
-                ? 'Offer sent'
-                : isCountered
-                  ? 'Counter offer'
-                  : 'Offer update'}
+              ? 'You are booked!'
+              : isAwaitingDeposit
+                ? 'Almost there — deposit needed'
+                : isPending
+                  ? 'Offer sent'
+                  : isCountered
+                    ? 'Counter offer'
+                    : 'Offer update'}
           </h1>
           <StatusBadge status={live.status} />
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-brand/70">
+        <p className="text-sm leading-relaxed text-brand/70">
           {isConfirmed &&
-            live.depositPaid &&
             (live.mobileService
-              ? 'Deposit noted — I’ll come to you. Have hair clean and pre-stretched.'
-              : 'Deposit noted — your appointment is fully confirmed. Arrive with hair clean and pre-stretched.')}
-          {isConfirmed &&
-            !live.depositPaid &&
-            'Your details are saved. Please pay the deposit to finish confirming your booking.'}
+              ? 'Deposit received — I’ll come to you. See prep tips below.'
+              : 'Deposit received — your appointment is confirmed. See prep tips below.')}
+          {isAwaitingDeposit &&
+            `A ${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} deposit is required to secure your appointment, sent by e-Transfer to ${CONFIG.depositEmail}. Your booking is only confirmed once the deposit is received. The remaining balance is paid in person.`}
           {isPending &&
-            'Thanks! Your offer is pending review and this time slot is held for you. Once accepted, you’ll pay the deposit to finalize.'}
+            'Thanks! Your offer is pending review and this time slot is held for you. Once accepted, you’ll send the deposit to finalize.'}
           {isCountered &&
-            `I've suggested $${live.counterAmount}. Accept to continue to the deposit step, or walk away to free the slot.`}
+            `I've suggested $${live.counterAmount}. Accept to continue, or walk away to free the slot.`}
           {isDeclined &&
             autoDeclined &&
             `Your offer was below the minimum of ${formatPrice(service!.minOffer!)} for this style, so it was declined automatically and the slot is open again.`}
@@ -1032,13 +892,11 @@ function ConfirmationView({
             'This offer was declined and the time slot has been released. You are welcome to book again at the listed price or with a new offer.'}
         </p>
 
-        {isConfirmed && !live.depositPaid && (
-          <button type="button" className="btn-primary mt-4 w-full" onClick={onPayDeposit}>
-            Pay deposit & confirm
-          </button>
+        {isAwaitingDeposit && (
+          <DepositInstructions amount={live.depositAmount ?? CONFIG.depositAmount} />
         )}
 
-        <dl className="mt-6 space-y-3 text-sm">
+        <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
           {live.size && <Row label="Size" value={formatSizeLabel(live.size)} />}
           <Row
@@ -1061,7 +919,7 @@ function ConfirmationView({
           <Row
             label="Amount"
             value={
-              live.type === 'offer' && !isConfirmed
+              live.type === 'offer' && !isConfirmed && !isAwaitingDeposit
                 ? `Offer ${formatPrice(live.offerAmount ?? live.price)}`
                 : formatPrice(live.price)
             }
@@ -1069,25 +927,28 @@ function ConfirmationView({
           {isCountered && live.counterAmount != null && (
             <Row label="Counter" value={formatPrice(live.counterAmount)} />
           )}
-          {isConfirmed && live.depositPaid && (
+          {(isAwaitingDeposit || isConfirmed) && (
             <Row
               label="Deposit"
-              value={`${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} · marked sent`}
+              value={
+                isConfirmed
+                  ? `${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} · received`
+                  : live.depositPaid
+                    ? `${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} · marked sent`
+                    : formatPrice(live.depositAmount ?? CONFIG.depositAmount)
+              }
             />
           )}
           <Row label="Name" value={live.clientName} />
-          {isConfirmed && live.depositPaid && !live.mobileService && (
+          {isConfirmed && !live.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
                 Studio address
               </p>
               <p className="mt-1 font-medium text-brand">{CONFIG.studioAddress}</p>
-              <p className="mt-2 text-xs text-brand/60">
-                Reminder: hair pre-stretched · extensions only if requested
-              </p>
             </div>
           )}
-          {isConfirmed && live.depositPaid && live.mobileService && (
+          {isConfirmed && live.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
                 Mobile appointment
@@ -1095,15 +956,48 @@ function ConfirmationView({
               <p className="mt-1 font-medium text-brand">
                 {live.mobileAddress || 'Address on file'}
               </p>
-              <p className="mt-2 text-xs text-brand/60">
-                I’ll come to you · hair pre-stretched
-              </p>
             </div>
           )}
         </dl>
 
+        {(isAwaitingDeposit || isConfirmed) && (
+          <>
+            <PrepInstructionsBlock />
+            <CancelNoticeLine />
+          </>
+        )}
+
+        {isAwaitingDeposit && !live.depositPaid && (
+          <div className="space-y-3">
+            <label className="flex cursor-pointer items-start gap-3 text-sm text-brand/80">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={ack}
+                onChange={(e) => setAck(e.target.checked)}
+              />
+              <span>
+                I have sent (or will send) the{' '}
+                {formatPrice(live.depositAmount ?? CONFIG.depositAmount)} e-Transfer to{' '}
+                {CONFIG.depositEmail}.
+              </span>
+            </label>
+            <button
+              type="button"
+              className="btn-secondary w-full"
+              disabled={!ack}
+              onClick={() => void markDepositPaid(live.id)}
+            >
+              I’ve sent the deposit
+            </button>
+            <p className="text-center text-xs text-brand/45">
+              Rolake will mark your booking Confirmed once the deposit arrives.
+            </p>
+          </div>
+        )}
+
         {isCountered && (
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <button type="button" className="btn-primary w-full" onClick={onAcceptCounter}>
               Accept {formatPrice(live.counterAmount!)} & continue
             </button>
@@ -1113,9 +1007,9 @@ function ConfirmationView({
           </div>
         )}
 
-        <p className="mt-6 text-xs text-brand/45">
+        <p className="text-xs text-brand/45">
           Reference: <span className="font-mono">{live.id}</span>
-          {(isPending || isConfirmed) && (
+          {(isPending || isAwaitingDeposit || isConfirmed) && (
             <>
               {' '}
               ·{' '}
@@ -1126,7 +1020,7 @@ function ConfirmationView({
           )}
         </p>
 
-        <Link to="/" className="btn-secondary mt-6 inline-flex w-full">
+        <Link to="/" className="btn-secondary inline-flex w-full">
           Back to home
         </Link>
       </div>

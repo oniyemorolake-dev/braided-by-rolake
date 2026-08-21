@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { CONFIG } from '../data'
+import { CONFIG, CONTACT_PHONE } from '../data'
+import { CancellationPolicySection } from '../components/BookingNotices'
 
 export function About() {
   return (
@@ -18,14 +19,18 @@ export function About() {
             <p>
               I work from a home-based studio in {CONFIG.city}. It&apos;s a quiet, comfortable space
               where we can take our time — play your playlist, chat, or simply rest while I braid.
-              For privacy and safety, the exact street address is shared only after your booking is
-              confirmed.
+              For privacy and safety, the exact street address is shared only after your deposit is
+              received and your booking is confirmed.
             </p>
             <p>
               Whether you book at the listed price or send an offer, you&apos;ll always get clear
               communication and honest timing. My goal is simple: you leave feeling cared for, with a
               style that lasts.
             </p>
+          </div>
+
+          <div className="mt-8">
+            <CancellationPolicySection />
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -48,15 +53,31 @@ export function About() {
             <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">Studio</p>
             <p className="mt-1 font-medium text-brand">Home studio · {CONFIG.city}, AB</p>
             <p className="mt-1 text-sm text-brand/60">
-              Full address revealed on your confirmation screen once you&apos;re booked.
+              Full address revealed once your deposit is received.
             </p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">Email</p>
-            <a href={`mailto:${CONFIG.email}`} className="mt-1 block font-medium text-accent hover:underline">
+            <a
+              href={`mailto:${CONFIG.email}`}
+              className="mt-1 block font-medium text-accent hover:underline"
+            >
               {CONFIG.email}
             </a>
           </div>
+          {CONTACT_PHONE.trim() && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                Text / phone
+              </p>
+              <a
+                href={`tel:${CONTACT_PHONE.replace(/\s/g, '')}`}
+                className="mt-1 block font-medium text-accent hover:underline"
+              >
+                {CONTACT_PHONE}
+              </a>
+            </div>
+          )}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">Instagram</p>
             <a

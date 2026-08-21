@@ -19,10 +19,15 @@ export function minutesToSlot(mins: number): string {
 
 /**
  * Bookings that occupy time on a given date:
- * confirmed + pending + countered (slot held). Declined frees the slot.
+ * confirmed + awaiting_deposit + pending + countered (slot held). Declined frees the slot.
  */
 export function isBlockingStatus(status: Booking['status']): boolean {
-  return status === 'confirmed' || status === 'pending' || status === 'countered'
+  return (
+    status === 'confirmed' ||
+    status === 'awaiting_deposit' ||
+    status === 'pending' ||
+    status === 'countered'
+  )
 }
 
 export function getBookingOccupiedRange(

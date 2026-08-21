@@ -15,7 +15,7 @@ import {
 import { useBookings } from '../context/BookingContext'
 import { StatusBadge } from '../components/StatusBadge'
 
-type Tab = 'all' | 'pending' | 'confirmed'
+type Tab = 'all' | 'pending' | 'awaiting' | 'confirmed'
 
 export function Admin() {
   const {
@@ -26,6 +26,7 @@ export function Admin() {
     acceptOffer,
     declineOffer,
     counterOffer,
+    markDepositReceived,
     clearAllBookings,
   } = useBookings()
 
@@ -58,6 +59,9 @@ export function Admin() {
     )
     if (tab === 'pending') {
       return sorted.filter((b) => b.status === 'pending' || b.status === 'countered')
+    }
+    if (tab === 'awaiting') {
+      return sorted.filter((b) => b.status === 'awaiting_deposit')
     }
     if (tab === 'confirmed') {
       return sorted.filter((b) => b.status === 'confirmed')
@@ -132,10 +136,11 @@ export function Admin() {
         </div>
       </div>
 
-      <div className="mt-6 flex gap-1 rounded-2xl bg-lilac/70 p-1">
+      <div className="mt-6 flex flex-wrap gap-1 rounded-2xl bg-lilac/70 p-1">
         {(
           [
             ['pending', 'Offers'],
+            ['awaiting', 'Awaiting deposit'],
             ['confirmed', 'Confirmed'],
             ['all', 'All'],
           ] as const
@@ -144,7 +149,7 @@ export function Admin() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
+            className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold sm:text-sm ${
               tab === key ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
             }`}
           >
@@ -184,13 +189,16 @@ export function Admin() {
             <p className="mt-2 text-sm text-brand/60">
               {tab === 'pending'
                 ? 'New client offers will show up here for Accept / Counter / Decline.'
-                : 'Confirmed appointments will appear as clients book.'}
+                : tab === 'awaiting'
+                  ? 'Bookings waiting on deposit appear here — tap Deposit received when paid.'
+                  : 'Confirmed appointments will appear as deposits are marked received.'}
             </p>
           </div>
         ) : (
           filtered.map((b) => {
             const service = getServiceById(b.serviceId)
             const isOfferActionable = b.status === 'pending'
+            const needsDepositConfirm = b.status === 'awaiting_deposit'
             return (
               <article key={b.id} className="card-soft p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -253,7 +261,11 @@ export function Admin() {
                   <div>
                     <span className="text-brand/45">Deposit · </span>
                     {formatPrice(b.depositAmount ?? CONFIG.depositAmount)}
-                    {b.depositPaid ? ' · paid (client marked)' : ' · unpaid'}
+                    {b.status === 'confirmed'
+                      ? ' · received'
+                      : b.depositPaid
+                        ? ' · client marked sent'
+                        : ' · unpaid'}
                   </div>
                   {b.note && (
                     <div className="sm:col-span-2">
@@ -263,6 +275,21 @@ export function Admin() {
                   )}
                   <div className="sm:col-span-2 font-mono text-xs text-brand/40">{b.id}</div>
                 </dl>
+
+                {needsDepositConfirm && (
+                  <div className="mt-4 border-t border-brand/10 pt-4">
+                    <button
+                      type="button"
+                      className="btn-primary !px-4 !py-2 text-sm"
+                      onClick={() => void markDepositReceived(b.id)}
+                    >
+                      Deposit received
+                    </button>
+                    <p className="mt-2 text-xs text-brand/50">
+                      Marks this booking Confirmed and notifies you by email.
+                    </p>
+                  </div>
+                )}
 
                 {isOfferActionable && (
                   <div className="mt-4 space-y-2 border-t border-brand/10 pt-4">

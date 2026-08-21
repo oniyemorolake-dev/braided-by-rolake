@@ -1,4 +1,15 @@
-import { CONFIG, formatDateLabel, formatSlotLabel, getServiceById, formatAddonsLabel, formatSizeLabel, formatMobileLabel, getLengthOption } from '../data'
+import {
+  CONFIG,
+  PREP_INSTRUCTIONS,
+  formatCancelNotice,
+  formatDateLabel,
+  formatSlotLabel,
+  getServiceById,
+  formatAddonsLabel,
+  formatSizeLabel,
+  formatMobileLabel,
+  getLengthOption,
+} from '../data'
 import type { Booking } from '../data'
 
 /**
@@ -14,20 +25,48 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     return { ok: false, error: 'Access key not configured' }
   }
 
+  const deposit = booking.depositAmount ?? CONFIG.depositAmount
   const subject =
     booking.type === 'offer' && booking.status === 'pending'
       ? `New offer — ${service?.name ?? 'Service'} from ${booking.clientName}`
-      : `New booking — ${service?.name ?? 'Service'} for ${booking.clientName}`
+      : booking.status === 'awaiting_deposit'
+        ? `Awaiting deposit — ${service?.name ?? 'Service'} for ${booking.clientName}`
+        : booking.status === 'confirmed'
+          ? `Deposit received — ${service?.name ?? 'Service'} for ${booking.clientName}`
+          : `New booking — ${service?.name ?? 'Service'} for ${booking.clientName}`
 
   const amount =
     booking.type === 'offer'
       ? booking.offerAmount ?? booking.price
       : booking.price
 
+  const prepBlock = PREP_INSTRUCTIONS.map((line, i) => `${i + 1}. ${line}`).join('\n')
+
+  const message = [
+    `Status: ${booking.status}`,
+    `Service: ${service?.name ?? booking.serviceId}`,
+    `When: ${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`,
+    `Client: ${booking.clientName} · ${booking.phone} · ${booking.email}`,
+    `Price: $${amount}`,
+    '',
+    `DEPOSIT: $${deposit} via Interac e-Transfer to ${CONFIG.depositEmail}`,
+    CONFIG.depositInstructions,
+    'Booking is only confirmed once the deposit is received. Remaining balance is paid in person.',
+    '',
+    formatCancelNotice(),
+    '',
+    'PREP INSTRUCTIONS:',
+    prepBlock,
+    '',
+    `Booking ID: ${booking.id}`,
+    `Status page: /status/${booking.id}`,
+  ].join('\n')
+
   const payload = {
     access_key: key,
     subject,
     from_name: 'Braided by Rolake Bookings',
+    message,
     service: service?.name ?? booking.serviceId,
     size: formatSizeLabel(booking.size),
     length: getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder',
@@ -40,7 +79,12 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     phone: booking.phone,
     email: booking.email,
     price_or_offer: `$${amount}`,
-    deposit_required: `$${booking.depositAmount ?? CONFIG.depositAmount}`,
+    deposit_required: `$${deposit}`,
+    deposit_email: CONFIG.depositEmail,
+    deposit_instructions: CONFIG.depositInstructions,
+    remaining_balance: 'Paid in person',
+    cancellation_notice: formatCancelNotice(),
+    prep_instructions: prepBlock,
     booking_type: booking.type,
     status: booking.status,
     note: booking.note || '(none)',
