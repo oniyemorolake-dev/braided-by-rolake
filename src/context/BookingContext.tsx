@@ -9,16 +9,33 @@ import {
 } from 'react'
 import {
   CONFIG,
+  FIRST_TIME_CODE,
+  FIRST_TIME_ENABLED,
+  LOYALTY_ENABLED,
+  REFERRAL_ENABLED,
+  REFERRAL_DISCOUNT_FRIEND,
   calculateBookingTotal,
+  clampDiscountAmount,
   getServiceById,
   isCustomQuoteService,
   type Booking,
   type BookingStatus,
   type BraidSizeId,
+  type DiscountType,
   type LengthId,
   type MobileZoneId,
 } from '../data'
-import { notifyOwner, notifyClientOfQuote } from '../lib/notifications'
+import {
+  ensureReferralCode,
+  maybeIssueLoyaltyCode,
+  redeemDiscountCode,
+  redeemFirstTimeIfEligible,
+} from '../lib/discounts'
+import {
+  notifyOwner,
+  notifyClientOfQuote,
+  notifyDiscountCodeEmail,
+} from '../lib/notifications'
 import { isSupabaseConfigured } from '../lib/supabase'
 import {
   clearAllBookingsRemote,
@@ -43,6 +60,10 @@ export interface CreateListedInput {
   mobileAddress?: string
   inspoUrl?: string
   notesAccommodations?: string
+  /** Optional exact discount code (one per booking) */
+  discountCode?: string
+  /** Auto-apply first-time WELCOME when eligible and no code entered */
+  applyFirstTime?: boolean
 }
 
 export interface CreateOfferInput extends CreateListedInput {
@@ -155,12 +176,48 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileService,
       mobileZoneId,
       mobileAddress,
-      price,
+      price: subtotal,
       depositAmount,
     } = buildPriceFields(input)
 
+    const bookingId = generateId()
+    let price = subtotal
+    let discountCode: string | undefined
+    let discountAmount: number | undefined
+    let discountType: DiscountType | undefined
+
+    const code = input.discountCode?.trim().toUpperCase()
+    if (code) {
+      const redeemed = await redeemDiscountCode(code, input.email, bookingId, subtotal)
+      if (!redeemed.ok || redeemed.amount == null) {
+        throw new Error(redeemed.message || 'Discount code could not be applied.')
+      }
+      discountAmount = clampDiscountAmount(subtotal, redeemed.amount)
+      price = Math.max(0, subtotal - discountAmount)
+      discountCode = redeemed.code ?? code
+      discountType = redeemed.type
+      if (redeemed.referrerEmail && redeemed.referrerRewardCode) {
+        void notifyDiscountCodeEmail({
+          toEmail: redeemed.referrerEmail,
+          subject: `You earned a $${redeemed.referrerRewardAmount} referral credit`,
+          headline: 'Thanks for referring a friend!',
+          body: `Your friend booked with your code. Use ${redeemed.referrerRewardCode} on your next booking for $${redeemed.referrerRewardAmount} off.`,
+          code: redeemed.referrerRewardCode,
+          amount: redeemed.referrerRewardAmount ?? 0,
+        })
+      }
+    } else if (input.applyFirstTime && FIRST_TIME_ENABLED) {
+      const redeemed = await redeemFirstTimeIfEligible(input.email, bookingId, subtotal)
+      if (redeemed?.ok && redeemed.amount != null) {
+        discountAmount = clampDiscountAmount(subtotal, redeemed.amount)
+        price = Math.max(0, subtotal - discountAmount)
+        discountCode = redeemed.code ?? FIRST_TIME_CODE
+        discountType = redeemed.type ?? 'first_time'
+      }
+    }
+
     const booking: Booking = {
-      id: generateId(),
+      id: bookingId,
       serviceId: input.serviceId,
       date: input.date,
       slot: input.slot,
@@ -180,6 +237,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       depositPaid: false,
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
+      discountCode,
+      discountAmount,
+      discountType,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -342,6 +402,34 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     })
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyOwner(saved)
+
+    // Loyalty + referral code after confirmed booking
+    if (LOYALTY_ENABLED) {
+      const loyalty = await maybeIssueLoyaltyCode(saved.email)
+      if (loyalty.issued && loyalty.code) {
+        void notifyDiscountCodeEmail({
+          toEmail: saved.email,
+          subject: `Loyalty reward: $${loyalty.amount} off your next booking`,
+          headline: 'You unlocked a loyalty discount!',
+          body: `Thanks for booking with me ${loyalty.count ?? ''} times. Use code ${loyalty.code} on your next appointment for $${loyalty.amount} off.`,
+          code: loyalty.code,
+          amount: loyalty.amount ?? 0,
+        })
+      }
+    }
+    if (REFERRAL_ENABLED) {
+      const ref = await ensureReferralCode(saved.email)
+      if (ref.ok && ref.code) {
+        void notifyDiscountCodeEmail({
+          toEmail: saved.email,
+          subject: 'Your Braided by Rolake referral code',
+          headline: 'Share your referral code',
+          body: `Share ${ref.code} with a friend. They get $${REFERRAL_DISCOUNT_FRIEND} off their first booking, and you’ll get a thank-you code after they book.`,
+          code: ref.code,
+          amount: REFERRAL_DISCOUNT_FRIEND,
+        })
+      }
+    }
   }, [])
 
   const getBooking = useCallback(

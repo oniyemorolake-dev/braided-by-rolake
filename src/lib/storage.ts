@@ -1,4 +1,4 @@
-import type { Booking, BookingStatus, BookingType, BraidSizeId, LengthId, MobileZoneId } from '../data'
+import type { Booking, BookingStatus, BookingType, BraidSizeId, DiscountType, LengthId, MobileZoneId } from '../data'
 import { isSupabaseConfigured, supabase } from './supabase'
 
 const STORAGE_KEY = 'bbr_bookings_v1'
@@ -27,6 +27,9 @@ interface BookingRow {
   deposit_paid: boolean | null
   inspo_url: string | null
   notes_accommodations: string | null
+  discount_code: string | null
+  discount_amount: number | null
+  discount_type: string | null
   created_at: string
   updated_at: string
 }
@@ -56,6 +59,9 @@ function rowToBooking(row: BookingRow): Booking {
     depositPaid: Boolean(row.deposit_paid),
     inspoUrl: row.inspo_url ?? undefined,
     notesAccommodations: row.notes_accommodations ?? undefined,
+    discountCode: row.discount_code ?? undefined,
+    discountAmount: row.discount_amount != null ? Number(row.discount_amount) : undefined,
+    discountType: (row.discount_type as DiscountType | null) ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -86,6 +92,9 @@ function bookingToRow(booking: Booking): BookingRow {
     deposit_paid: Boolean(booking.depositPaid),
     inspo_url: booking.inspoUrl ?? null,
     notes_accommodations: booking.notesAccommodations ?? null,
+    discount_code: booking.discountCode ?? null,
+    discount_amount: booking.discountAmount ?? null,
+    discount_type: booking.discountType ?? null,
     created_at: booking.createdAt,
     updated_at: booking.updatedAt,
   }
@@ -194,6 +203,9 @@ export async function updateBookingRemote(
   if (patch.notesAccommodations !== undefined) {
     rowPatch.notes_accommodations = patch.notesAccommodations
   }
+  if (patch.discountCode !== undefined) rowPatch.discount_code = patch.discountCode
+  if (patch.discountAmount !== undefined) rowPatch.discount_amount = patch.discountAmount
+  if (patch.discountType !== undefined) rowPatch.discount_type = patch.discountType
 
   const { data, error } = await supabase
     .from('bookings')

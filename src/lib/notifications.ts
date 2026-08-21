@@ -110,6 +110,9 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     status: booking.status,
     note: booking.note || '(none)',
     counter_amount: booking.counterAmount != null ? `$${booking.counterAmount}` : '(n/a)',
+    discount_code: booking.discountCode || '(none)',
+    discount_amount: booking.discountAmount != null ? `$${booking.discountAmount}` : '(n/a)',
+    discount_type: booking.discountType || '(n/a)',
     booking_id: booking.id,
   }
 
@@ -277,5 +280,64 @@ export async function notifyOwnerOfReview(review: Review): Promise<{ ok: boolean
     const message = err instanceof Error ? err.message : 'Network error'
     console.error('[Web3Forms]', message)
     return { ok: false, error: message }
+  }
+}
+
+/** Email a client (via Web3Forms + cc) about a discount / referral / loyalty code */
+export async function notifyDiscountCodeEmail(input: {
+  toEmail: string
+  subject: string
+  headline: string
+  body: string
+  code: string
+  amount: number
+}): Promise<{ ok: boolean; error?: string }> {
+  const key = CONFIG.web3formsAccessKey
+  if (!key || key.includes('PASTE_YOUR')) {
+    console.warn('[Web3Forms] Access key not set — skipping discount email.')
+    return { ok: false, error: 'Access key not configured' }
+  }
+
+  const message = [
+    input.headline,
+    '',
+    input.body,
+    '',
+    `Code: ${input.code}`,
+    `Amount off: $${input.amount}`,
+    '',
+    'One code per booking · codes are single-use.',
+    '— Braided by Rolake',
+  ].join('\n')
+
+  const payload = {
+    access_key: key,
+    subject: input.subject,
+    from_name: 'Braided by Rolake',
+    email: input.toEmail,
+    ccemail: input.toEmail,
+    message,
+    discount_code: input.code,
+    discount_amount: `$${input.amount}`,
+  }
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    const data = (await res.json()) as { success?: boolean; message?: string }
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message || 'Email send failed' }
+    }
+    return { ok: true }
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : 'Network error'
+    console.error('[Web3Forms]', errMessage)
+    return { ok: false, error: errMessage }
   }
 }

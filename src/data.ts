@@ -16,6 +16,8 @@ export type BookingStatus =
 export type BraidSizeId = 'small' | 'smedium' | 'medium' | 'large'
 export type LengthId = 'shoulder' | 'midback' | 'waist' | 'butt'
 export type MobileZoneId = 'nw' | 'sw' | 'ne' | 'se' | 'nearby' | 'extended'
+export type DiscountType = 'review' | 'first_time' | 'referral' | 'loyalty' | 'promo'
+export type DiscountStatus = 'unused' | 'used' | 'disabled'
 
 export interface Service {
   id: string
@@ -95,6 +97,10 @@ export interface Booking {
   inspoUrl?: string
   /** Allergies, sensitivities, or accommodations */
   notesAccommodations?: string
+  /** Applied discount code (uppercase) */
+  discountCode?: string
+  discountAmount?: number
+  discountType?: DiscountType
   createdAt: string
   updatedAt: string
 }
@@ -210,30 +216,76 @@ export const POLICIES = [
   'No wash / shampoo services - take-outs and dry detangling only for hair-care appointments.',
 ] as const
 
-/** Discounts clients can ask for (applied manually / note in booking) */
+/** Discount program config ? amounts & toggles live here */
+export const FIRST_TIME_ENABLED = true
+export const FIRST_TIME_DISCOUNT = 15
+export const FIRST_TIME_CODE = 'WELCOME'
+
+export const REFERRAL_ENABLED = true
+export const REFERRAL_DISCOUNT_FRIEND = 15
+export const REFERRAL_DISCOUNT_REFERRER = 15
+
+export const LOYALTY_ENABLED = true
+export const LOYALTY_THRESHOLD = 5
+export const LOYALTY_DISCOUNT = 25
+
+export const REVIEW_DISCOUNT = 10
+
+/** Final price cannot go below this after a discount */
+export const DISCOUNT_PRICE_FLOOR = 30
+
+/** Marketing cards on Services (backed by the shared discounts system) */
 export const DISCOUNTS = [
   {
-    id: 'first-time',
+    id: 'first_time',
+    type: 'first_time' as DiscountType,
     label: 'First-time client',
-    detail: '10% off your first full style (mention when you book)',
-  },
-  {
-    id: 'student',
-    label: 'Student',
-    detail: '$10 off with a valid student ID (weekday appointments)',
+    detail: FIRST_TIME_ENABLED
+      ? `$${FIRST_TIME_DISCOUNT} off your first booking ? use code ${FIRST_TIME_CODE} or we?ll offer it automatically for new emails`
+      : 'First-time discount currently paused',
+    enabled: FIRST_TIME_ENABLED,
   },
   {
     id: 'referral',
+    type: 'referral' as DiscountType,
     label: 'Refer a friend',
-    detail: 'You both get $15 off your next booking after they complete theirs',
+    detail: REFERRAL_ENABLED
+      ? `They get $${REFERRAL_DISCOUNT_FRIEND} off; you get $${REFERRAL_DISCOUNT_REFERRER} off your next booking`
+      : 'Referral program currently paused',
+    enabled: REFERRAL_ENABLED,
   },
   {
-    id: 'weekday',
-    label: 'Weekday booking',
-    detail: '$10 off Mon-Thu appointments (listed-price bookings)',
+    id: 'loyalty',
+    type: 'loyalty' as DiscountType,
+    label: 'Loyalty',
+    detail: LOYALTY_ENABLED
+      ? `After ${LOYALTY_THRESHOLD} confirmed bookings, get $${LOYALTY_DISCOUNT} off your next set`
+      : 'Loyalty rewards currently paused',
+    enabled: LOYALTY_ENABLED,
+  },
+  {
+    id: 'review',
+    type: 'review' as DiscountType,
+    label: 'Leave a review',
+    detail: `Share your experience ? approved reviews may unlock a $${REVIEW_DISCOUNT} thank-you code`,
+    enabled: true,
   },
 ] as const
 
+export function applyDiscountToTotal(subtotal: number, discountAmount: number): number {
+  const clamped = Math.max(
+    0,
+    Math.min(discountAmount, Math.max(0, subtotal - DISCOUNT_PRICE_FLOOR)),
+  )
+  return Math.max(DISCOUNT_PRICE_FLOOR, subtotal - clamped)
+}
+
+export function clampDiscountAmount(subtotal: number, discountAmount: number): number {
+  return Math.max(
+    0,
+    Math.min(discountAmount, Math.max(0, subtotal - DISCOUNT_PRICE_FLOOR)),
+  )
+}
 export const SIZE_OPTIONS: SizeOption[] = [
   {
     id: 'small',

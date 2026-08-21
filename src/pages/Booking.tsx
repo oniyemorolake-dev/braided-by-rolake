@@ -10,6 +10,11 @@ import {
   SIZE_OPTIONS,
   calculateBookingDurationHours,
   calculateBookingTotal,
+  FIRST_TIME_CODE,
+  FIRST_TIME_DISCOUNT,
+  FIRST_TIME_ENABLED,
+  DISCOUNT_PRICE_FLOOR,
+  clampDiscountAmount,
   formatAddonsLabel,
   formatDateLabel,
   formatDuration,
@@ -45,6 +50,11 @@ import {
   PrepInstructionsBlock,
 } from '../components/BookingNotices'
 import { PhotoSlot, servicePhotoPath } from '../components/PhotoSlot'
+import {
+  checkFirstTimeEligible,
+  validateDiscountCode,
+  type ValidateDiscountResult,
+} from '../lib/discounts'
 
 type Mode = 'listed' | 'offer'
 type Step = 'service' | 'options' | 'schedule' | 'details' | 'done'
@@ -87,6 +97,11 @@ export function Booking() {
   const [inspoPreview, setInspoPreview] = useState<string | null>(null)
   const [inspoUploading, setInspoUploading] = useState(false)
   const [serviceQuery, setServiceQuery] = useState('')
+  const [discountCode, setDiscountCode] = useState('')
+  const [discountResult, setDiscountResult] = useState<ValidateDiscountResult | null>(null)
+  const [discountChecking, setDiscountChecking] = useState(false)
+  const [firstTimeEligible, setFirstTimeEligible] = useState(false)
+  const [applyFirstTime, setApplyFirstTime] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<Booking | null>(null)
@@ -100,6 +115,17 @@ export function Booking() {
     if (!service) return 0
     return calculateBookingTotal(service, size, lengthId, addonIds, activeMobileZone)
   }, [service, size, lengthId, addonIds, activeMobileZone])
+
+  const discountOff =
+    !isQuote && mode === 'listed'
+      ? discountResult?.ok && discountResult.amount != null
+        ? clampDiscountAmount(total, discountResult.amount)
+        : applyFirstTime && firstTimeEligible && !discountCode.trim()
+          ? clampDiscountAmount(total, FIRST_TIME_DISCOUNT)
+          : 0
+      : 0
+
+  const payableTotal = Math.max(0, total - discountOff)
 
   const durationHours = useMemo(() => {
     if (!service) return 1
@@ -159,6 +185,37 @@ export function Booking() {
     setAddonIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     )
+  }
+
+  async function applyCode() {
+    setDiscountChecking(true)
+    setError('')
+    try {
+      if (!email.trim()) {
+        setDiscountResult({ ok: false, message: 'Enter your email before applying a code.' })
+        return
+      }
+      if (!discountCode.trim()) {
+        setDiscountResult({ ok: false, message: 'Enter a discount code.' })
+        return
+      }
+      const result = await validateDiscountCode(discountCode, email, total)
+      setDiscountResult(result)
+      if (result.ok) setApplyFirstTime(false)
+    } finally {
+      setDiscountChecking(false)
+    }
+  }
+
+  async function refreshFirstTimeEligibility(nextEmail: string) {
+    if (!FIRST_TIME_ENABLED || !nextEmail.includes('@')) {
+      setFirstTimeEligible(false)
+      setApplyFirstTime(false)
+      return
+    }
+    const check = await checkFirstTimeEligible(nextEmail)
+    setFirstTimeEligible(check.eligible)
+    if (!check.eligible) setApplyFirstTime(false)
   }
 
   function onInspoPicked(file: File | null) {
@@ -246,7 +303,16 @@ export function Booking() {
           note: note.trim(),
         })
       } else if (mode === 'listed') {
-        booking = await createListedBooking(options)
+        booking = await createListedBooking({
+          ...options,
+          discountCode:
+            discountResult?.ok && discountCode.trim()
+              ? discountCode.trim().toUpperCase()
+              : undefined,
+          applyFirstTime: Boolean(
+            applyFirstTime && firstTimeEligible && !(discountResult?.ok && discountCode.trim()),
+          ),
+        })
       } else {
         const amount = Number(offerAmount)
         if (!Number.isFinite(amount) || amount <= 0) {
@@ -940,7 +1006,9 @@ export function Booking() {
               {isQuote
                 ? 'Price on request — quote after review'
                 : mode === 'listed'
-                  ? `Total ${formatPrice(total)} · ${formatPrice(CONFIG.depositAmount)} deposit`
+                  ? `Total ${formatPrice(payableTotal)}${
+                      discountOff > 0 ? ` (${formatPrice(discountOff)} off)` : ''
+                    } · ${formatPrice(CONFIG.depositAmount)} deposit`
                   : 'You are sending an offer for review'}
             </p>
             {!isQuote && <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>}
@@ -1026,11 +1094,96 @@ export function Booking() {
               className="input-field"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setDiscountResult(null)
+                void refreshFirstTimeEligibility(e.target.value)
+              }}
+              onBlur={() => void refreshFirstTimeEligibility(email)}
               autoComplete="email"
               required
             />
           </div>
+
+          {mode === 'listed' && !isQuote && (
+            <div className="space-y-3 rounded-2xl border border-accent/20 bg-lilac/40 p-4">
+              <p className="text-sm font-semibold text-brand">Discount code</p>
+              <p className="text-xs text-brand/55">
+                One code per booking. Final price won&apos;t go below {formatPrice(DISCOUNT_PRICE_FLOOR)}.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  className="input-field !py-2"
+                  placeholder="e.g. WELCOME"
+                  value={discountCode}
+                  onChange={(e) => {
+                    setDiscountCode(e.target.value.toUpperCase())
+                    setDiscountResult(null)
+                    if (e.target.value.trim()) setApplyFirstTime(false)
+                  }}
+                  autoCapitalize="characters"
+                />
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0 !px-4 !py-2 text-sm"
+                  disabled={discountChecking}
+                  onClick={() => void applyCode()}
+                >
+                  {discountChecking ? 'Checking…' : 'Apply'}
+                </button>
+              </div>
+              {discountResult && (
+                <p
+                  className={`text-sm ${discountResult.ok ? 'text-emerald-700' : 'text-rose-600'}`}
+                >
+                  {discountResult.message}
+                </p>
+              )}
+                  {FIRST_TIME_ENABLED && firstTimeEligible && !discountResult?.ok && (
+                <label className="flex cursor-pointer items-start gap-3 text-sm text-brand/80">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={applyFirstTime}
+                    onChange={(e) => {
+                      const on = e.target.checked
+                      setApplyFirstTime(on)
+                      if (on) {
+                        setDiscountCode(FIRST_TIME_CODE)
+                        void validateDiscountCode(FIRST_TIME_CODE, email, total).then((r) => {
+                          setDiscountResult(r)
+                          if (r.ok) setApplyFirstTime(true)
+                        })
+                      } else {
+                        setDiscountCode('')
+                        setDiscountResult(null)
+                      }
+                    }}
+                  />
+                  <span>
+                    Apply first-time discount ({formatPrice(FIRST_TIME_DISCOUNT)} off with{' '}
+                    {FIRST_TIME_CODE})
+                  </span>
+                </label>
+              )}
+              {discountOff > 0 && (
+                <div className="rounded-xl bg-white/80 px-3 py-2 text-sm text-brand">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{formatPrice(total)}</span>
+                  </div>
+                  <div className="flex justify-between text-accent">
+                    <span>Discount</span>
+                    <span>-{formatPrice(discountOff)}</span>
+                  </div>
+                  <div className="mt-1 flex justify-between font-semibold">
+                    <span>Total due</span>
+                    <span>{formatPrice(payableTotal)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-brand">

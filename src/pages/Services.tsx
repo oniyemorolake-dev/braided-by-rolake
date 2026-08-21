@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   ADDONS,
   CONFIG,
+  DISCOUNT_PRICE_FLOOR,
   DISCOUNTS,
   LENGTH_OPTIONS,
   MOBILE_BASE,
@@ -100,10 +101,11 @@ export function Services() {
       <section className="mt-10 rounded-2xl border border-accent/20 bg-white p-5">
         <h2 className="font-display text-2xl font-semibold text-brand">Discounts</h2>
         <p className="mt-1 text-sm text-brand/60">
-          Mention the discount in your booking note — I&apos;ll apply it when confirming.
+          Enter a code at checkout — one code per booking, single-use, never below{' '}
+          {formatPrice(DISCOUNT_PRICE_FLOOR)}.
         </p>
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {DISCOUNTS.map((d) => (
+          {DISCOUNTS.filter((d) => d.enabled).map((d) => (
             <li key={d.id} className="rounded-xl bg-lilac/50 px-4 py-3">
               <p className="font-semibold text-brand">{d.label}</p>
               <p className="mt-0.5 text-sm text-brand/65">{d.detail}</p>

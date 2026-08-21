@@ -11,6 +11,7 @@ import {
   getLengthOption,
   getServiceById,
   type Booking,
+  type DiscountType,
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { StatusBadge } from '../components/StatusBadge'
@@ -22,9 +23,16 @@ import {
   type Review,
   type ReviewStatus,
 } from '../lib/reviews'
+import {
+  adminCreateDiscount,
+  adminListDiscounts,
+  adminSetDiscountStatus,
+  discountTypeLabel,
+  type DiscountRecord,
+} from '../lib/discounts'
 
 type Tab = 'all' | 'pending' | 'awaiting' | 'confirmed'
-type Panel = 'bookings' | 'reviews'
+type Panel = 'bookings' | 'reviews' | 'discounts'
 
 export function Admin() {
   const {
@@ -50,6 +58,14 @@ export function Admin() {
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [reviewsError, setReviewsError] = useState('')
   const [reviewBusyId, setReviewBusyId] = useState<string | null>(null)
+  const [discounts, setDiscounts] = useState<DiscountRecord[]>([])
+  const [discountsLoading, setDiscountsLoading] = useState(false)
+  const [discountsError, setDiscountsError] = useState('')
+  const [newCode, setNewCode] = useState('')
+  const [newType, setNewType] = useState<DiscountType>('promo')
+  const [newAmount, setNewAmount] = useState('15')
+  const [newOwnerEmail, setNewOwnerEmail] = useState('')
+  const [creatingDiscount, setCreatingDiscount] = useState(false)
 
   async function refreshReviews() {
     setReviewsLoading(true)
@@ -64,9 +80,27 @@ export function Admin() {
     }
   }
 
+  async function refreshDiscounts() {
+    setDiscountsLoading(true)
+    setDiscountsError('')
+    try {
+      const list = await adminListDiscounts()
+      setDiscounts(list)
+    } catch (err) {
+      setDiscountsError(err instanceof Error ? err.message : 'Could not load discounts.')
+    } finally {
+      setDiscountsLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!authed || panel !== 'reviews') return
     void refreshReviews()
+  }, [authed, panel])
+
+  useEffect(() => {
+    if (!authed || panel !== 'discounts') return
+    void refreshDiscounts()
   }, [authed, panel])
 
   async function moderateReview(id: string, status: ReviewStatus) {
@@ -172,17 +206,21 @@ export function Admin() {
           <button
             type="button"
             className="btn-secondary !px-4 !py-2 text-sm"
-            disabled={refreshing || reviewsLoading}
+            disabled={refreshing || reviewsLoading || discountsLoading}
             onClick={() => {
               if (panel === 'reviews') {
                 void refreshReviews()
+                return
+              }
+              if (panel === 'discounts') {
+                void refreshDiscounts()
                 return
               }
               setRefreshing(true)
               void refreshBookings().finally(() => setRefreshing(false))
             }}
           >
-            {refreshing || reviewsLoading ? 'Refreshing…' : 'Refresh'}
+            {refreshing || reviewsLoading || discountsLoading ? 'Refreshing…' : 'Refresh'}
           </button>
           <button type="button" onClick={logout} className="btn-secondary !px-4 !py-2 text-sm">
             Log out
@@ -195,6 +233,7 @@ export function Admin() {
           [
             ['bookings', 'Bookings'],
             ['reviews', 'Reviews'],
+            ['discounts', 'Discounts'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -210,7 +249,157 @@ export function Admin() {
         ))}
       </div>
 
-      {panel === 'reviews' ? (
+      {panel === 'discounts' ? (
+        <div className="mt-6 space-y-4">
+          <p className="text-sm text-brand/60">
+            All discount codes in one place. Public clients can only validate a single code — they
+            cannot list codes. Create review thank-you codes with the client&apos;s email.
+          </p>
+          {discountsError && <p className="text-sm text-rose-600">{discountsError}</p>}
+
+          <form
+            className="card-soft space-y-3 p-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const amount = Number(newAmount)
+              if (!newCode.trim() || !Number.isFinite(amount) || amount <= 0) return
+              setCreatingDiscount(true)
+              void adminCreateDiscount({
+                code: newCode,
+                type: newType,
+                amount,
+                ownerEmail: newOwnerEmail || undefined,
+                note: newType === 'referral' ? 'invite' : undefined,
+              })
+                .then(() => {
+                  setNewCode('')
+                  setNewOwnerEmail('')
+                  return refreshDiscounts()
+                })
+                .catch((err) => {
+                  setDiscountsError(err instanceof Error ? err.message : 'Could not create code.')
+                })
+                .finally(() => setCreatingDiscount(false))
+            }}
+          >
+            <p className="font-semibold text-brand">Create code</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                className="input-field !py-2"
+                placeholder="CODE"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                required
+              />
+              <select
+                className="input-field !py-2"
+                value={newType}
+                onChange={(e) => setNewType(e.target.value as DiscountType)}
+              >
+                {(['promo', 'review', 'first_time', 'referral', 'loyalty'] as DiscountType[]).map(
+                  (t) => (
+                    <option key={t} value={t}>
+                      {discountTypeLabel(t)}
+                    </option>
+                  ),
+                )}
+              </select>
+              <input
+                className="input-field !py-2"
+                type="number"
+                min={1}
+                placeholder="Amount $"
+                value={newAmount}
+                onChange={(e) => setNewAmount(e.target.value)}
+                required
+              />
+              <input
+                className="input-field !py-2"
+                type="email"
+                placeholder="Owner email (loyalty/review/referral)"
+                value={newOwnerEmail}
+                onChange={(e) => setNewOwnerEmail(e.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn-primary !px-4 !py-2 text-sm" disabled={creatingDiscount}>
+              {creatingDiscount ? 'Creating…' : 'Create discount'}
+            </button>
+          </form>
+
+          {discountsLoading && discounts.length === 0 ? (
+            <p className="text-sm text-brand/50">Loading discounts…</p>
+          ) : discounts.length === 0 ? (
+            <div className="card-soft px-6 py-12 text-center">
+              <p className="font-display text-2xl text-brand">No codes yet</p>
+            </div>
+          ) : (
+            discounts.map((d) => (
+              <article key={d.id} className="card-soft p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-mono text-lg font-semibold text-brand">{d.code}</p>
+                    <p className="text-sm text-brand/60">
+                      {discountTypeLabel(d.type)} · {formatPrice(d.amount)}
+                      {d.note ? ` · ${d.note}` : ''}
+                    </p>
+                    <p className="mt-1 text-xs text-brand/45">
+                      Owner: {d.ownerEmail || '—'}
+                      {d.usedByEmail ? ` · Used by ${d.usedByEmail}` : ''}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      d.status === 'unused'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : d.status === 'used'
+                          ? 'bg-brand/10 text-brand/70'
+                          : 'bg-rose-50 text-rose-700'
+                    }`}
+                  >
+                    {d.status}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {d.status !== 'disabled' && (
+                    <button
+                      type="button"
+                      className="btn-secondary !px-3 !py-1.5 text-xs"
+                      onClick={() => {
+                        void adminSetDiscountStatus(d.id, 'disabled')
+                          .then(() => refreshDiscounts())
+                          .catch((err) =>
+                            setDiscountsError(
+                              err instanceof Error ? err.message : 'Could not disable.',
+                            ),
+                          )
+                      }}
+                    >
+                      Disable
+                    </button>
+                  )}
+                  {d.status === 'disabled' && (
+                    <button
+                      type="button"
+                      className="btn-secondary !px-3 !py-1.5 text-xs"
+                      onClick={() => {
+                        void adminSetDiscountStatus(d.id, 'unused')
+                          .then(() => refreshDiscounts())
+                          .catch((err) =>
+                            setDiscountsError(
+                              err instanceof Error ? err.message : 'Could not re-enable.',
+                            ),
+                          )
+                      }}
+                    >
+                      Re-enable
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      ) : panel === 'reviews' ? (
         <div className="mt-6 space-y-4">
           <p className="text-sm text-brand/60">
             New reviews start as pending. Approve to show them on the site, or hide anytime.
@@ -407,6 +596,12 @@ export function Admin() {
                       <span> → quote {formatPrice(b.counterAmount)}</span>
                     )}
                   </div>
+                  {b.discountCode && (
+                    <div>
+                      <span className="text-brand/45">Discount · </span>
+                      {b.discountCode} (−{formatPrice(b.discountAmount ?? 0)})
+                    </div>
+                  )}
                   {b.size && (
                     <div>
                       <span className="text-brand/45">Size · </span>
