@@ -18,6 +18,7 @@ import {
   formatSizeLabel,
   formatSlotLabel,
   getAdultServices,
+  getCareServices,
   getKidsServices,
   getLengthOption,
   getMobileZone,
@@ -327,6 +328,36 @@ export function Booking() {
           </div>
 
           <div>
+            <p className="mb-1 text-sm font-medium text-brand">Take outs &amp; detangling</p>
+            <p className="mb-3 text-xs text-brand/55">
+              Removal and no-wash detangle only — no wash services.
+            </p>
+            <div className="space-y-3">
+              {getCareServices().map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => selectService(s.id)}
+                  className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
+                >
+                  <img
+                    src={s.image}
+                    alt=""
+                    className="h-14 w-14 rounded-xl bg-lilac object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-brand">{s.name}</p>
+                    <p className="text-xs text-brand/55">
+                      from {formatPrice(s.price)} · {formatDuration(s.durationHours)}
+                    </p>
+                  </div>
+                  <span className="text-accent">→</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <p className="mb-1 text-sm font-medium text-brand">Kids · ages 4–11</p>
             <p className="mb-3 text-xs text-brand/55">
               Soft tension, shorter appointments, styles made for school and play.
@@ -409,6 +440,10 @@ export function Booking() {
             </div>
           )}
 
+          {service.category !== 'care' &&
+            service.id !== 'kids-take-out' &&
+            service.id !== 'kids-detangle' && (
+            <>
           <div>
             <label className="mb-2 block text-sm font-medium text-brand">Length (add-on)</label>
             <div className="space-y-2">
@@ -472,6 +507,16 @@ export function Booking() {
               })}
             </div>
           </div>
+            </>
+          )}
+
+          {(service.category === 'care' ||
+            service.id === 'kids-take-out' ||
+            service.id === 'kids-detangle') && (
+            <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
+              No wash service — take-out / detangle only. Length and style add-ons don&apos;t apply.
+            </p>
+          )}
 
           <div>
             <label className="mb-2 block text-sm font-medium text-brand">

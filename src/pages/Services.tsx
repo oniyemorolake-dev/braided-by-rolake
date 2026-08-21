@@ -9,12 +9,14 @@ import {
   formatPrice,
   formatPriceAdjust,
   getAdultServices,
+  getCareServices,
   getKidsServices,
 } from '../data'
 import { ServiceCard } from '../components/ServiceCard'
 
 export function Services() {
   const adult = getAdultServices()
+  const care = getCareServices()
   const kids = getKidsServices()
 
   return (
@@ -86,11 +88,25 @@ export function Services() {
 
       <section className="mt-14">
         <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+          Take outs &amp; detangling
+        </h2>
+        <p className="mt-1 text-sm text-brand/60">
+          Braid removal and no-wash detangling only — no shampoo or wash services.
+        </p>
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {care.map((s) => (
+            <ServiceCard key={s.id} service={s} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-14">
+        <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
           Kids · ages 4–11
         </h2>
         <p className="mt-1 text-sm text-brand/60">
           Gentle, age-appropriate styles with soft tension and patient hands. Perfect for school,
-          sports, and special days.
+          sports, and special days. Kids take-outs and no-wash detangling available too.
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {kids.map((s) => (

@@ -28,8 +28,8 @@ export interface Service {
   featured?: boolean
   /** Whether client picks Small / Smedium / Medium / Large */
   hasSizes?: boolean
-  /** Adult styles vs kids (ages 4–11) */
-  category?: 'adult' | 'kids'
+  /** Adult styles vs kids (ages 4–11) vs hair care extras */
+  category?: 'adult' | 'kids' | 'care'
 }
 
 export interface SizeOption {
@@ -152,6 +152,7 @@ export const POLICIES = [
   'A $20 deposit via Interac e-Transfer is required to hold your appointment.',
   'Mobile (I come to you) is available for an extra travel fee based on your location.',
   'Prices as listed — deposit by e-Transfer (no card fees).',
+  'No wash / shampoo services — take-outs and dry detangling only for hair-care appointments.',
 ] as const
 
 /** Discounts clients can ask for (applied manually / note in booking) */
@@ -291,7 +292,7 @@ export const SERVICES: Service[] = [
     name: 'Knotless Braids',
     price: 120,
     durationHours: 5,
-    image: '/gallery/knotless.svg',
+    image: '/gallery/knotless.jpg',
     description:
       'Lightweight, tension-friendly braids that look natural from root to tip. Ideal for everyday wear and low manipulation. (Braiding hair not included unless arranged.)',
     minOffer: 95,
@@ -303,7 +304,7 @@ export const SERVICES: Service[] = [
     name: 'Boho / Goddess Knotless',
     price: 150,
     durationHours: 6,
-    image: '/gallery/knotless.svg',
+    image: '/gallery/boho.jpg',
     description:
       'Knotless braids with soft human-hair strands for that effortless goddess look. Perfect for vacations and special moments.',
     minOffer: 120,
@@ -315,7 +316,7 @@ export const SERVICES: Service[] = [
     name: 'Box Braids',
     price: 100,
     durationHours: 4,
-    image: '/gallery/box.svg',
+    image: '/gallery/box.jpg',
     description:
       'Classic protective braids with clean parts and lasting hold. Sized to your preference — medium is most popular.',
     minOffer: 80,
@@ -327,7 +328,7 @@ export const SERVICES: Service[] = [
     name: 'Fulani Braids',
     price: 100,
     durationHours: 4,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/fulani.jpg',
     description:
       'Tribal-inspired design with cornrows in the middle and braids around the sides — beads optional.',
     minOffer: 80,
@@ -339,7 +340,7 @@ export const SERVICES: Service[] = [
     name: 'Lemonade Braids',
     price: 95,
     durationHours: 3.5,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/cornrows.jpg',
     description:
       'Side-swept cornrows and braids that frame the face. Sleek, stylish, and camera-ready.',
     minOffer: 75,
@@ -350,7 +351,7 @@ export const SERVICES: Service[] = [
     name: 'Cornrows / Feed-in',
     price: 55,
     durationHours: 2,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/cornrows.jpg',
     description:
       'Neat feed-in cornrows that grow gracefully into your length. Great for workouts, travel, or a sleek look.',
     minOffer: 40,
@@ -361,7 +362,7 @@ export const SERVICES: Service[] = [
     name: 'Stitch Braids',
     price: 65,
     durationHours: 2.5,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/cornrows.jpg',
     description:
       'Clean, stitched parts for a sharp finish. Straight-back or custom designs available.',
     minOffer: 50,
@@ -372,7 +373,7 @@ export const SERVICES: Service[] = [
     name: 'Two-Strand Twists',
     price: 110,
     durationHours: 4,
-    image: '/gallery/twists.svg',
+    image: '/gallery/twists.jpg',
     description:
       'Soft two-strand twists with defined parts. Protective, versatile, and easy to style up or down.',
     minOffer: 90,
@@ -384,7 +385,7 @@ export const SERVICES: Service[] = [
     name: 'Passion Twists',
     price: 120,
     durationHours: 5,
-    image: '/gallery/twists.svg',
+    image: '/gallery/twists.jpg',
     description:
       'Romantic, springy twists with a soft fall. Low maintenance and beautiful for weeks.',
     minOffer: 95,
@@ -395,7 +396,7 @@ export const SERVICES: Service[] = [
     name: 'Senegalese Twists',
     price: 115,
     durationHours: 5,
-    image: '/gallery/twists.svg',
+    image: '/gallery/twists.jpg',
     description:
       'Rope-style twists with a polished finish. Great for a sleek protective look that lasts.',
     minOffer: 90,
@@ -406,7 +407,7 @@ export const SERVICES: Service[] = [
     name: 'Soft Locs',
     price: 140,
     durationHours: 6,
-    image: '/gallery/box.svg',
+    image: '/gallery/locs.jpg',
     description:
       'Faux locs with a soft, natural feel. Lightweight compared to traditional locs and easy to style.',
     minOffer: 110,
@@ -417,7 +418,7 @@ export const SERVICES: Service[] = [
     name: 'Butterfly Locs',
     price: 150,
     durationHours: 6,
-    image: '/gallery/box.svg',
+    image: '/gallery/locs.jpg',
     description:
       'Textured, wavy faux locs with that signature butterfly look — bold and low-maintenance.',
     minOffer: 120,
@@ -428,7 +429,7 @@ export const SERVICES: Service[] = [
     name: 'French Curls',
     price: 130,
     durationHours: 5,
-    image: '/gallery/twists.svg',
+    image: '/gallery/french.jpg',
     description:
       'Braids finished with soft French-curl ends for bounce and volume. Pretty, feminine, and great for events.',
     minOffer: 100,
@@ -440,7 +441,7 @@ export const SERVICES: Service[] = [
     name: 'French Plaits',
     price: 55,
     durationHours: 2.5,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/french.jpg',
     description:
       'Classic French plaits (braids) with clean parts — one, two, or more. Simple, neat, and timeless.',
     minOffer: 40,
@@ -451,7 +452,7 @@ export const SERVICES: Service[] = [
     name: 'Island Braids',
     price: 110,
     durationHours: 4.5,
-    image: '/gallery/box.svg',
+    image: '/gallery/island.jpg',
     description:
       'Chunky, vacation-ready island braids with a relaxed vibe. Perfect for travel, beach days, and low upkeep.',
     minOffer: 90,
@@ -463,11 +464,63 @@ export const SERVICES: Service[] = [
     name: 'Cornrow Ponytail',
     price: 50,
     durationHours: 2,
-    image: '/gallery/ponytail.svg',
+    image: '/gallery/ponytail.jpg',
     description:
       'Sleek cornrows gathered into a polished ponytail. Perfect for events, school, or keeping hair tidy.',
     minOffer: 40,
     hasSizes: false,
+  },
+
+  // —— Hair care (take-outs & detangling — no wash) ——
+  {
+    id: 'take-out',
+    name: 'Take Out (Braid Removal)',
+    price: 40,
+    durationHours: 1.5,
+    image: '/gallery/takeout.jpg',
+    description:
+      'Careful removal of braids, twists, or locs. Taken down gently to protect your natural hair. No restyle and no wash included.',
+    minOffer: 30,
+    hasSizes: false,
+    category: 'care',
+    featured: true,
+  },
+  {
+    id: 'take-out-long',
+    name: 'Take Out · Long / Dense Styles',
+    price: 55,
+    durationHours: 2.5,
+    image: '/gallery/takeout.jpg',
+    description:
+      'For waist+ length, small size, or very dense sets that need more time to remove safely. No wash included.',
+    minOffer: 40,
+    hasSizes: false,
+    category: 'care',
+  },
+  {
+    id: 'detangle-no-wash',
+    name: 'Detangling (No Wash)',
+    price: 35,
+    durationHours: 1,
+    image: '/gallery/detangle.jpg',
+    description:
+      'Finger-detangle and section your natural hair after a take-out or between styles. Dry detangle only — no shampoo or wash.',
+    minOffer: 25,
+    hasSizes: false,
+    category: 'care',
+    featured: true,
+  },
+  {
+    id: 'take-out-detangle',
+    name: 'Take Out + Detangle (No Wash)',
+    price: 65,
+    durationHours: 2.5,
+    image: '/gallery/detangle.jpg',
+    description:
+      'Full take-out plus gentle no-wash detangling so your hair is soft and ready for your next style or wash day at home.',
+    minOffer: 50,
+    hasSizes: false,
+    category: 'care',
   },
 
   // —— Kids (ages 4–11) ——
@@ -476,7 +529,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Braids',
     price: 45,
     durationHours: 2,
-    image: '/gallery/kids.svg',
+    image: '/gallery/kids.jpg',
     description:
       'Ages 4–11. Soft, simple braids sized for little heads — neat parts, gentle tension, and a finish that lasts through school and play.',
     minOffer: 35,
@@ -489,7 +542,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Cornrows',
     price: 40,
     durationHours: 1.5,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/cornrows.jpg',
     description:
       'Ages 4–11. Straight-back or design cornrows that stay tidy for school, sports, and busy weeks. Soft on the scalp.',
     minOffer: 30,
@@ -502,7 +555,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Box Braids',
     price: 60,
     durationHours: 3,
-    image: '/gallery/box.svg',
+    image: '/gallery/box.jpg',
     description:
       'Ages 4–11. Lightweight box braids in a kid-friendly size — protective, cute, and easy for parents to maintain.',
     minOffer: 45,
@@ -514,7 +567,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Knotless Braids',
     price: 70,
     durationHours: 3.5,
-    image: '/gallery/knotless.svg',
+    image: '/gallery/knotless.jpg',
     description:
       'Ages 4–11. Gentler knotless style for growing hairlines — less tension, natural look, still protective.',
     minOffer: 55,
@@ -526,7 +579,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Twists',
     price: 50,
     durationHours: 2.5,
-    image: '/gallery/twists.svg',
+    image: '/gallery/twists.jpg',
     description:
       'Ages 4–11. Soft two-strand twists that are quick to put in and easy to wash around. Great for everyday wear.',
     minOffer: 40,
@@ -538,7 +591,7 @@ export const SERVICES: Service[] = [
     name: 'Kids French Plaits',
     price: 35,
     durationHours: 1.5,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/french.jpg',
     description:
       'Ages 4–11. One, two, or more French plaits — classic, neat, and perfect for school mornings.',
     minOffer: 25,
@@ -550,7 +603,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Cornrow Ponytail',
     price: 40,
     durationHours: 1.5,
-    image: '/gallery/ponytail.svg',
+    image: '/gallery/ponytail.jpg',
     description:
       'Ages 4–11. Cornrows into a tidy ponytail — event-ready and stays put through recess and dance class.',
     minOffer: 30,
@@ -562,7 +615,7 @@ export const SERVICES: Service[] = [
     name: 'Kids Fulani / Tribal',
     price: 55,
     durationHours: 2.5,
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/fulani.jpg',
     description:
       'Ages 4–11. Fun tribal-inspired parts with braids or beads — a favourite for birthdays and photos.',
     minOffer: 40,
@@ -574,10 +627,34 @@ export const SERVICES: Service[] = [
     name: 'Kids Natural Styles',
     price: 35,
     durationHours: 1.5,
-    image: '/gallery/kids.svg',
+    image: '/gallery/kids.jpg',
     description:
       'Ages 4–11. Bantu knots, puff, rubber-band styles, or simple updos on natural hair — gentle and age-appropriate.',
     minOffer: 25,
+    hasSizes: false,
+    category: 'kids',
+  },
+  {
+    id: 'kids-take-out',
+    name: 'Kids Take Out',
+    price: 30,
+    durationHours: 1,
+    image: '/gallery/takeout.jpg',
+    description:
+      'Ages 4–11. Gentle braid or style removal for little ones — patient and careful with tender scalps. No wash included.',
+    minOffer: 20,
+    hasSizes: false,
+    category: 'kids',
+  },
+  {
+    id: 'kids-detangle',
+    name: 'Kids Detangling (No Wash)',
+    price: 25,
+    durationHours: 0.75,
+    image: '/gallery/detangle.jpg',
+    description:
+      'Ages 4–11. Soft, no-wash detangling after a take-out or for tangled natural hair. No shampoo included.',
+    minOffer: 20,
     hasSizes: false,
     category: 'kids',
   },
@@ -595,67 +672,67 @@ export const GALLERY: GalleryItem[] = [
     id: 'g1',
     title: 'Medium knotless',
     caption: 'Shoulder-length knotless in a soft black — everyday favourite.',
-    image: '/gallery/knotless.svg',
+    image: '/gallery/knotless.jpg',
   },
   {
     id: 'g2',
     title: 'Box braids with curls',
     caption: 'Waist-length box braids finished with loose curls at the ends.',
-    image: '/gallery/box.svg',
+    image: '/gallery/box.jpg',
   },
   {
     id: 'g3',
     title: 'Feed-in cornrows',
     caption: 'Six straight-back feed-ins with a clean, glossy finish.',
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/cornrows.jpg',
   },
   {
     id: 'g4',
     title: 'Passion twists',
     caption: 'Boho twists with a soft, romantic fall.',
-    image: '/gallery/twists.svg',
+    image: '/gallery/twists.jpg',
   },
   {
     id: 'g5',
     title: 'Kids cornrows',
     caption: 'Ages 4–11 — soft cornrows for a busy school week.',
-    image: '/gallery/kids.svg',
+    image: '/gallery/kids.jpg',
   },
   {
     id: 'g5b',
     title: 'Kids braids',
     caption: 'Gentle kids braids that stay neat through playtime.',
-    image: '/gallery/kids.svg',
+    image: '/gallery/kids.jpg',
   },
   {
     id: 'g6',
     title: 'Cornrow ponytail',
     caption: 'Sleek parts into a high ponytail — event-ready.',
-    image: '/gallery/ponytail.svg',
+    image: '/gallery/ponytail.jpg',
   },
   {
     id: 'g7',
     title: 'Jumbo knotless',
     caption: 'Fewer braids, bigger impact — still gentle at the root.',
-    image: '/gallery/knotless.svg',
+    image: '/gallery/knotless.jpg',
   },
   {
     id: 'g8',
     title: 'Fulani braids',
     caption: 'Tribal design with beads for a personal touch.',
-    image: '/gallery/cornrows.svg',
+    image: '/gallery/fulani.jpg',
   },
   {
     id: 'g9',
     title: 'French curls',
     caption: 'Braids with soft curly ends — bounce for days.',
-    image: '/gallery/twists.svg',
+    image: '/gallery/french.jpg',
   },
   {
     id: 'g10',
     title: 'Island braids',
     caption: 'Chunky island braids ready for sunshine and travel.',
-    image: '/gallery/box.svg',
+    image: '/gallery/island.jpg',
   },
 ]
 
@@ -664,11 +741,15 @@ export function getServiceById(id: string): Service | undefined {
 }
 
 export function getAdultServices(): Service[] {
-  return SERVICES.filter((s) => s.category !== 'kids')
+  return SERVICES.filter((s) => s.category !== 'kids' && s.category !== 'care')
 }
 
 export function getKidsServices(): Service[] {
   return SERVICES.filter((s) => s.category === 'kids')
+}
+
+export function getCareServices(): Service[] {
+  return SERVICES.filter((s) => s.category === 'care')
 }
 
 export function getSizeOption(id: BraidSizeId): SizeOption | undefined {
@@ -687,6 +768,14 @@ export function getMobileZone(id: MobileZoneId): MobileZone | undefined {
   return MOBILE_ZONES.find((z) => z.id === id)
 }
 
+export function isCareService(service: Service): boolean {
+  return (
+    service.category === 'care' ||
+    service.id === 'kids-take-out' ||
+    service.id === 'kids-detangle'
+  )
+}
+
 export function calculateBookingTotal(
   service: Service,
   sizeId: BraidSizeId = 'medium',
@@ -696,13 +785,14 @@ export function calculateBookingTotal(
 ): number {
   const size = getSizeOption(sizeId)
   const length = getLengthOption(lengthId)
-  const addonsTotal = addonIds.reduce((sum, id) => sum + (getAddon(id)?.price ?? 0), 0)
+  const care = isCareService(service)
+  const addonsTotal = care
+    ? 0
+    : addonIds.reduce((sum, id) => sum + (getAddon(id)?.price ?? 0), 0)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.priceAdjust ?? 0)
+  const lengthPrice = care ? 0 : (length?.price ?? 0)
   const mobileFee = mobileZoneId ? (getMobileZone(mobileZoneId)?.price ?? 0) : 0
-  return Math.max(
-    0,
-    service.price + sizeAdjust + (length?.price ?? 0) + addonsTotal + mobileFee,
-  )
+  return Math.max(0, service.price + sizeAdjust + lengthPrice + addonsTotal + mobileFee)
 }
 
 export function calculateBookingDurationHours(
@@ -713,6 +803,9 @@ export function calculateBookingDurationHours(
 ): number {
   const size = getSizeOption(sizeId)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.durationAdjustHours ?? 0)
+  if (isCareService(service)) {
+    return Math.max(0.5, service.durationHours + sizeAdjust)
+  }
   const lengthExtra =
     lengthId === 'waist' ? 0.5 : lengthId === 'butt' ? 1 : lengthId === 'midback' ? 0.25 : 0
   const addonExtra =

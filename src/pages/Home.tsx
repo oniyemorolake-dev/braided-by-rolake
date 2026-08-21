@@ -18,7 +18,9 @@ const reasons = [
 ]
 
 export function Home() {
-  const featured = SERVICES.filter((s) => s.featured)
+  const featured = SERVICES.filter(
+    (s) => s.featured && s.category !== 'care' && s.category !== 'kids',
+  ).slice(0, 6)
 
   return (
     <div>
