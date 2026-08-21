@@ -1,7 +1,7 @@
 /**
  * Seed data & config for Braided by Rolake.
  * Structured so services/bookings/offers can later move to Supabase
- * without rewriting the UI ? swap storage adapters, keep these types.
+ * without rewriting the UI - swap storage adapters, keep these types.
  */
 
 export type BookingType = 'listed' | 'offer'
@@ -26,14 +26,14 @@ export interface Service {
   /** Optional - add real photos later */
   image?: string
   description: string
-  /** Optional floor ? offers below this are auto-declined. Omit = all offers accepted for review. */
+  /** Optional floor - offers below this are auto-declined. Omit = all offers accepted for review. */
   minOffer?: number
   featured?: boolean
   /** Whether client picks Small / Smedium / Medium / Large */
   hasSizes?: boolean
-  /** Adult styles vs kids (ages 4?11) vs hair care extras */
+  /** Adult styles vs kids (ages 4-11) vs hair care extras */
   category?: 'adult' | 'kids' | 'care'
-  /** Custom / special design ? no listed price; client requests a quote */
+  /** Custom / special design - no listed price; client requests a quote */
   quoteOnly?: boolean
 }
 
@@ -58,7 +58,7 @@ export interface Addon {
   description: string
 }
 
-/** Travel fee when Rolake comes to the client ? priced by area */
+/** Travel fee when Rolake comes to the client - priced by area */
 export interface MobileZone {
   id: MobileZoneId
   label: string
@@ -122,7 +122,7 @@ export interface BusinessConfig {
   pricesBeforeTax: boolean
   taxLabel: string
   taxNote: string
-  /** 0 = Sun ? 6 = Sat ? working days */
+  /** 0 = Sun through 6 = Sat, working days */
   workingDays: number[]
   workStartHour: number
   workEndHour: number
@@ -174,7 +174,7 @@ export const CONFIG: BusinessConfig = {
   name: 'Braided by Rolake',
   tagline: 'Protective styles, done with care',
   city: 'Calgary',
-  studioAddress: 'Calgary, AB ? full street address shared once your deposit is received',
+  studioAddress: 'Calgary, AB - full street address shared once your deposit is received',
   instagram: '@tgm.byrolake',
   instagramUrl: 'https://www.instagram.com/tgm.byrolake',
   tiktok: '@tgm.byrolake',
@@ -190,8 +190,8 @@ export const CONFIG: BusinessConfig = {
   pricesBeforeTax: true,
   taxLabel: 'GST',
   taxNote:
-    'Prices as listed. Deposit by Interac e-Transfer ? no card fees. GST only if Rolake is GST-registered.',
-  workingDays: [1, 2, 3, 4, 5, 6], // Mon?Sat
+    'Prices as listed. Deposit by Interac e-Transfer - no card fees. GST only if Rolake is GST-registered.',
+  workingDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
   workStartHour: 9,
   workEndHour: 19,
   bufferMinutes: 60,
@@ -203,11 +203,11 @@ export const CONFIG: BusinessConfig = {
 /** Studio policies shown on Services, booking, and confirmation */
 export const POLICIES = [
   'Hair must be clean and pre-stretched before your appointment.',
-  'I can provide extensions only on request ? please ask when you book so we can plan ahead.',
-  'A $30 deposit via Interac e-Transfer is required to secure your appointment ? booking is confirmed once the deposit is received.',
+  'I can provide extensions only on request - please ask when you book so we can plan ahead.',
+  'A $30 deposit via Interac e-Transfer is required to secure your appointment - booking is confirmed once the deposit is received.',
   'Mobile (I come to you) is available for an extra travel fee based on your location.',
-  'Prices as listed ? deposit by e-Transfer (no card fees). Remaining balance paid in person.',
-  'No wash / shampoo services ? take-outs and dry detangling only for hair-care appointments.',
+  'Prices as listed - deposit by e-Transfer (no card fees). Remaining balance paid in person.',
+  'No wash / shampoo services - take-outs and dry detangling only for hair-care appointments.',
 ] as const
 
 /** Discounts clients can ask for (applied manually / note in booking) */
@@ -230,7 +230,7 @@ export const DISCOUNTS = [
   {
     id: 'weekday',
     label: 'Weekday booking',
-    detail: '$10 off Mon?Thu appointments (listed-price bookings)',
+    detail: '$10 off Mon-Thu appointments (listed-price bookings)',
   },
 ] as const
 
@@ -284,7 +284,7 @@ export const LENGTH_OPTIONS: LengthOption[] = [
     id: 'butt',
     label: 'Butt-length',
     price: 40,
-    description: 'Maximum length ? more hair',
+    description: 'Maximum length - more hair',
   },
 ]
 
@@ -294,7 +294,7 @@ export const ADDONS: Addon[] = [
     name: 'Curls',
     price: -10,
     description:
-      'Curly ends instead of a full straight finish ? saves time, so $10 off the total',
+      'Curly ends instead of a full straight finish - saves time, so $10 off the total',
   },
   {
     id: 'boho',
@@ -317,16 +317,16 @@ export const ADDONS: Addon[] = [
 ]
 
 /**
- * Mobile travel fees ? based from NW Calgary near SAIT.
+ * Mobile travel fees - based from NW Calgary near SAIT.
  * Fees cover Uber/Lyft BOTH ways (to the client and home). Studio visit = $0 travel.
  */
 export const MOBILE_BASE = {
   area: 'NW Calgary near SAIT',
   /** Shown on Services + booking so clients understand the fee */
-  note: 'Travel fees cover my Uber/Lyft both ways ? to you and back home. They are not a markup on the braid; they replace what I spend on the round trip.',
+  note: 'Travel fees cover my Uber/Lyft both ways - to you and back home. They are not a markup on the braid; they replace what I spend on the round trip.',
   /** Market context for clients */
   marketAverage:
-    'For reference, mobile braiding travel add-ons in Calgary often average about $30?$80+ depending on distance. My rates are set to cover the two-way ride from NW near SAIT, not to inflate the style price.',
+    'For reference, mobile braiding travel add-ons in Calgary often average about $30-$80+ depending on distance. My rates are set to cover the two-way ride from NW near SAIT, not to inflate the style price.',
 } as const
 
 export const MOBILE_ZONES: MobileZone[] = [
@@ -334,37 +334,37 @@ export const MOBILE_ZONES: MobileZone[] = [
     id: 'nw',
     label: 'NW Calgary',
     price: 25,
-    description: 'Same quadrant (near SAIT) ? covers Uber/Lyft both ways',
+    description: 'Same quadrant (near SAIT) - covers Uber/Lyft both ways',
   },
   {
     id: 'sw',
     label: 'SW Calgary',
     price: 35,
-    description: 'Southwest ? round-trip Uber/Lyft both ways',
+    description: 'Southwest - round-trip Uber/Lyft both ways',
   },
   {
     id: 'ne',
     label: 'NE Calgary',
     price: 40,
-    description: 'Northeast ? round-trip Uber/Lyft both ways',
+    description: 'Northeast - round-trip Uber/Lyft both ways',
   },
   {
     id: 'se',
     label: 'SE Calgary',
     price: 45,
-    description: 'Southeast ? farthest in-city round trip for me',
+    description: 'Southeast - farthest in-city round trip for me',
   },
   {
     id: 'nearby',
     label: 'Nearby cities',
     price: 65,
-    description: 'Airdrie, Cochrane, Chestermere, Okotoks ? Uber both ways',
+    description: 'Airdrie, Cochrane, Chestermere, Okotoks - Uber both ways',
   },
   {
     id: 'extended',
     label: 'Extended travel',
     price: 85,
-    description: 'Further out ? I confirm after booking; covers two-way ride',
+    description: 'Further out - I confirm after booking; covers two-way ride',
   },
 ]
 
@@ -375,7 +375,7 @@ export const SERVICES: Service[] = [
     price: 0,
     durationHours: 4,
     description:
-      'Have a unique look, mixed style, or special design in mind? Request a quote ? upload your inspo and describe what you want. I\'ll review and send a price.',
+      'Have a unique look, mixed style, or special design in mind? Request a quote - upload your inspo and describe what you want. I\'ll review and send a price.',
     hasSizes: false,
     quoteOnly: true,
     featured: true,
@@ -408,7 +408,7 @@ export const SERVICES: Service[] = [
     price: 145,
     durationHours: 4,
     description:
-      'Classic protective braids with clean parts and lasting hold. Sized to your preference ? medium is most popular.',
+      'Classic protective braids with clean parts and lasting hold. Sized to your preference - medium is most popular.',
     minOffer: 115,
     featured: true,
     hasSizes: true,
@@ -419,7 +419,7 @@ export const SERVICES: Service[] = [
     price: 150,
     durationHours: 4,
     description:
-      'Tribal-inspired design with cornrows in the middle and braids around the sides ? beads optional.',
+      'Tribal-inspired design with cornrows in the middle and braids around the sides - beads optional.',
     minOffer: 120,
     featured: true,
     hasSizes: true,
@@ -450,7 +450,7 @@ export const SERVICES: Service[] = [
     price: 50,
     durationHours: 1.5,
     description:
-      'Cornrows on half the head with the rest left out or styled simply ? quick, cute, and easy to maintain. Design details welcome.',
+      'Cornrows on half the head with the rest left out or styled simply - quick, cute, and easy to maintain. Design details welcome.',
     minOffer: 40,
     hasSizes: false,
     featured: true,
@@ -523,7 +523,7 @@ export const SERVICES: Service[] = [
     price: 195,
     durationHours: 6,
     description:
-      'Textured, wavy faux locs with that signature butterfly look ? bold and low-maintenance.',
+      'Textured, wavy faux locs with that signature butterfly look - bold and low-maintenance.',
     minOffer: 155,
     hasSizes: true,
   },
@@ -544,7 +544,7 @@ export const SERVICES: Service[] = [
     price: 70,
     durationHours: 2.5,
     description:
-      'Classic French plaits (braids) with clean parts ? one, two, or more. Simple, neat, and timeless.',
+      'Classic French plaits (braids) with clean parts - one, two, or more. Simple, neat, and timeless.',
     minOffer: 50,
     hasSizes: false,
   },
@@ -577,7 +577,7 @@ export const SERVICES: Service[] = [
     price: 40,
     durationHours: 1.25,
     description:
-      'Clean cornrow base for wig install. Neat parts ready for your wig or sew-in ? wig/weave not included.',
+      'Clean cornrow base for wig install. Neat parts ready for your wig or sew-in - wig/weave not included.',
     minOffer: 30,
     hasSizes: false,
     featured: true,
@@ -605,7 +605,7 @@ export const SERVICES: Service[] = [
     category: 'kids',
   },
 
-  // ?? Hair care (take-outs & detangling ? no wash) ??
+  // --- Hair care (take-outs & detangling - no wash) ---
   {
     id: 'take-out',
     name: 'Take Out (Braid Removal)',
@@ -620,7 +620,7 @@ export const SERVICES: Service[] = [
   },
   {
     id: 'take-out-long',
-    name: 'Take Out ? Long / Dense Styles',
+    name: 'Take Out - Long / Dense Styles',
     price: 65,
     durationHours: 2.5,
     description:
@@ -635,7 +635,7 @@ export const SERVICES: Service[] = [
     price: 40,
     durationHours: 1,
     description:
-      'Finger-detangle and section your natural hair after a take-out or between styles. Dry detangle only ? no shampoo or wash.',
+      'Finger-detangle and section your natural hair after a take-out or between styles. Dry detangle only - no shampoo or wash.',
     minOffer: 30,
     hasSizes: false,
     category: 'care',
@@ -653,14 +653,14 @@ export const SERVICES: Service[] = [
     category: 'care',
   },
 
-  // ?? Kids (ages 4?11) ??
+  // --- Kids (ages 4-11) ---
   {
     id: 'kids-braids',
     name: 'Kids Braids',
     price: 55,
     durationHours: 2,
     description:
-      'Ages 4?11. Soft, simple braids sized for little heads ? neat parts, gentle tension, and a finish that lasts through school and play.',
+      'Ages 4-11. Soft, simple braids sized for little heads - neat parts, gentle tension, and a finish that lasts through school and play.',
     minOffer: 40,
     hasSizes: false,
     category: 'kids',
@@ -672,7 +672,7 @@ export const SERVICES: Service[] = [
     price: 50,
     durationHours: 1.5,
     description:
-      'Ages 4?11. Straight-back or design cornrows that stay tidy for school, sports, and busy weeks. Soft on the scalp.',
+      'Ages 4-11. Straight-back or design cornrows that stay tidy for school, sports, and busy weeks. Soft on the scalp.',
     minOffer: 35,
     hasSizes: false,
     category: 'kids',
@@ -684,7 +684,7 @@ export const SERVICES: Service[] = [
     price: 75,
     durationHours: 3,
     description:
-      'Ages 4?11. Lightweight box braids in a kid-friendly size ? protective, cute, and easy for parents to maintain.',
+      'Ages 4-11. Lightweight box braids in a kid-friendly size - protective, cute, and easy for parents to maintain.',
     minOffer: 55,
     hasSizes: false,
     category: 'kids',
@@ -695,7 +695,7 @@ export const SERVICES: Service[] = [
     price: 90,
     durationHours: 3.5,
     description:
-      'Ages 4?11. Gentler knotless style for growing hairlines ? less tension, natural look, still protective.',
+      'Ages 4-11. Gentler knotless style for growing hairlines - less tension, natural look, still protective.',
     minOffer: 70,
     hasSizes: false,
     category: 'kids',
@@ -706,7 +706,7 @@ export const SERVICES: Service[] = [
     price: 65,
     durationHours: 2.5,
     description:
-      'Ages 4?11. Soft two-strand twists that are quick to put in and easy to wash around. Great for everyday wear.',
+      'Ages 4-11. Soft two-strand twists that are quick to put in and easy to wash around. Great for everyday wear.',
     minOffer: 50,
     hasSizes: false,
     category: 'kids',
@@ -717,7 +717,7 @@ export const SERVICES: Service[] = [
     price: 45,
     durationHours: 1.5,
     description:
-      'Ages 4?11. One, two, or more French plaits ? classic, neat, and perfect for school mornings.',
+      'Ages 4-11. One, two, or more French plaits - classic, neat, and perfect for school mornings.',
     minOffer: 30,
     hasSizes: false,
     category: 'kids',
@@ -728,7 +728,7 @@ export const SERVICES: Service[] = [
     price: 50,
     durationHours: 1.5,
     description:
-      'Ages 4?11. Cornrows into a tidy ponytail ? event-ready and stays put through recess and dance class.',
+      'Ages 4-11. Cornrows into a tidy ponytail - event-ready and stays put through recess and dance class.',
     minOffer: 35,
     hasSizes: false,
     category: 'kids',
@@ -739,7 +739,7 @@ export const SERVICES: Service[] = [
     price: 70,
     durationHours: 2.5,
     description:
-      'Ages 4?11. Fun tribal-inspired parts with braids or beads ? a favourite for birthdays and photos.',
+      'Ages 4-11. Fun tribal-inspired parts with braids or beads - a favourite for birthdays and photos.',
     minOffer: 50,
     hasSizes: false,
     category: 'kids',
@@ -750,7 +750,7 @@ export const SERVICES: Service[] = [
     price: 45,
     durationHours: 1.5,
     description:
-      'Ages 4?11. Bantu knots, puff, rubber-band styles, or simple updos on natural hair ? gentle and age-appropriate.',
+      'Ages 4-11. Bantu knots, puff, rubber-band styles, or simple updos on natural hair - gentle and age-appropriate.',
     minOffer: 30,
     hasSizes: false,
     category: 'kids',
@@ -761,7 +761,7 @@ export const SERVICES: Service[] = [
     price: 35,
     durationHours: 1,
     description:
-      'Ages 4?11. Gentle braid or style removal for little ones ? patient and careful with tender scalps. No wash included.',
+      'Ages 4-11. Gentle braid or style removal for little ones - patient and careful with tender scalps. No wash included.',
     minOffer: 25,
     hasSizes: false,
     category: 'kids',
@@ -772,7 +772,7 @@ export const SERVICES: Service[] = [
     price: 30,
     durationHours: 0.75,
     description:
-      'Ages 4?11. Soft, no-wash detangling after a take-out or for tangled natural hair. No shampoo included.',
+      'Ages 4-11. Soft, no-wash detangling after a take-out or for tangled natural hair. No shampoo included.',
     minOffer: 20,
     hasSizes: false,
     category: 'kids',
@@ -790,7 +790,7 @@ export const GALLERY: GalleryItem[] = [
   {
     id: 'g1',
     title: 'Medium knotless',
-    caption: 'Shoulder-length knotless ? everyday favourite.',
+    caption: 'Shoulder-length knotless - everyday favourite.',
     image: '/gallery/knotless.jpg',
   },
   {
@@ -814,7 +814,7 @@ export const GALLERY: GalleryItem[] = [
   {
     id: 'g5',
     title: 'Kids styles',
-    caption: 'Gentle styles for ages 4?11.',
+    caption: 'Gentle styles for ages 4-11.',
     image: '/gallery/kids.jpg',
   },
   {
@@ -959,7 +959,7 @@ export function formatPrice(amount: number): string {
   return `$${amount}`
 }
 
-/** Listed price label ? custom quotes show "Price on request" */
+/** Listed price label - custom quotes show "Price on request" */
 export function formatServicePriceLabel(service: Service): string {
   if (isCustomQuoteService(service)) return 'Price on request'
   return `from ${formatPrice(service.price)}`
@@ -968,7 +968,7 @@ export function formatServicePriceLabel(service: Service): string {
 export function formatPriceAdjust(amount: number): string {
   if (amount === 0) return 'Incl.'
   if (amount > 0) return `+$${amount}`
-  return `?$${Math.abs(amount)}`
+  return `-$${Math.abs(amount)}`
 }
 
 export function formatDuration(hours: number): string {
@@ -998,7 +998,7 @@ export function formatDateLabel(date: string): string {
 }
 
 export function formatSizeLabel(id?: BraidSizeId): string {
-  if (!id) return '?'
+  if (!id) return '-'
   return getSizeOption(id)?.label ?? id
 }
 
@@ -1013,5 +1013,5 @@ export function formatMobileLabel(booking: {
 }): string {
   if (!booking.mobileService || !booking.mobileZoneId) return 'Studio visit'
   const zone = getMobileZone(booking.mobileZoneId)
-  return zone ? `Mobile ? ${zone.label} (+$${zone.price})` : 'Mobile'
+  return zone ? `Mobile - ${zone.label} (+$${zone.price})` : 'Mobile'
 }
