@@ -8,6 +8,7 @@ import { About } from './pages/About'
 import { Booking } from './pages/Booking'
 import { Admin } from './pages/Admin'
 import { Status } from './pages/Status'
+import { Reviews } from './pages/Reviews'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="services" element={<Services />} />
             <Route path="gallery" element={<Gallery />} />
             <Route path="about" element={<About />} />
+            <Route path="reviews" element={<Reviews />} />
             <Route path="book" element={<Booking />} />
             <Route path="status/:id" element={<Status />} />
             <Route path="admin" element={<Admin />} />

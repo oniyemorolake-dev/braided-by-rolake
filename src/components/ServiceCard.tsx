@@ -4,6 +4,7 @@ import {
   formatPrice,
   type Service,
 } from '../data'
+import { PhotoSlot, servicePhotoPath } from './PhotoSlot'
 
 interface ServiceCardProps {
   service: Service
@@ -11,8 +12,16 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, compact }: ServiceCardProps) {
+  const src = service.image ?? servicePhotoPath(service.id)
+
   return (
     <article className="card-soft flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
+      <PhotoSlot
+        src={src}
+        alt={service.name}
+        className="aspect-[4/3] w-full"
+        label="Photo coming soon"
+      />
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-xl font-semibold text-brand sm:text-2xl">

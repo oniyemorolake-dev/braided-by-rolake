@@ -25,6 +25,8 @@ interface BookingRow {
   mobile_address: string | null
   deposit_amount: number | null
   deposit_paid: boolean | null
+  inspo_url: string | null
+  notes_accommodations: string | null
   created_at: string
   updated_at: string
 }
@@ -52,6 +54,8 @@ function rowToBooking(row: BookingRow): Booking {
     mobileAddress: row.mobile_address ?? undefined,
     depositAmount: row.deposit_amount != null ? Number(row.deposit_amount) : undefined,
     depositPaid: Boolean(row.deposit_paid),
+    inspoUrl: row.inspo_url ?? undefined,
+    notesAccommodations: row.notes_accommodations ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -80,6 +84,8 @@ function bookingToRow(booking: Booking): BookingRow {
     mobile_address: booking.mobileAddress ?? null,
     deposit_amount: booking.depositAmount ?? null,
     deposit_paid: Boolean(booking.depositPaid),
+    inspo_url: booking.inspoUrl ?? null,
+    notes_accommodations: booking.notesAccommodations ?? null,
     created_at: booking.createdAt,
     updated_at: booking.updatedAt,
   }
@@ -184,6 +190,10 @@ export async function updateBookingRemote(
   if (patch.mobileAddress !== undefined) rowPatch.mobile_address = patch.mobileAddress
   if (patch.depositAmount !== undefined) rowPatch.deposit_amount = patch.depositAmount
   if (patch.depositPaid !== undefined) rowPatch.deposit_paid = patch.depositPaid
+  if (patch.inspoUrl !== undefined) rowPatch.inspo_url = patch.inspoUrl
+  if (patch.notesAccommodations !== undefined) {
+    rowPatch.notes_accommodations = patch.notesAccommodations
+  }
 
   const { data, error } = await supabase
     .from('bookings')

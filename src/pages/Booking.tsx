@@ -4,6 +4,7 @@ import {
   ADDONS,
   CONFIG,
   LENGTH_OPTIONS,
+  MOBILE_BASE,
   MOBILE_ZONES,
   POLICIES,
   SIZE_OPTIONS,
@@ -30,12 +31,19 @@ import {
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { getAvailableSlots, getBookableDates } from '../lib/scheduling'
+import {
+  INSPO_ACCEPT,
+  uploadInspoFile,
+  validateInspoFile,
+} from '../lib/inspoUpload'
+import { filterServices } from '../lib/serviceSearch'
 import { StatusBadge } from '../components/StatusBadge'
 import {
   CancelNoticeLine,
   DepositInstructions,
   PrepInstructionsBlock,
 } from '../components/BookingNotices'
+import { PhotoSlot, servicePhotoPath } from '../components/PhotoSlot'
 
 type Mode = 'listed' | 'offer'
 type Step = 'service' | 'options' | 'schedule' | 'details' | 'done'
@@ -72,6 +80,11 @@ export function Booking() {
   const [email, setEmail] = useState('')
   const [offerAmount, setOfferAmount] = useState('')
   const [note, setNote] = useState('')
+  const [notesAccommodations, setNotesAccommodations] = useState('')
+  const [inspoFile, setInspoFile] = useState<File | null>(null)
+  const [inspoPreview, setInspoPreview] = useState<string | null>(null)
+  const [inspoUploading, setInspoUploading] = useState(false)
+  const [serviceQuery, setServiceQuery] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<Booking | null>(null)
@@ -105,6 +118,20 @@ export function Booking() {
     return getAvailableSlots(date, serviceForSchedule, bookings)
   }, [serviceForSchedule, date, bookings])
 
+  const adultServices = useMemo(
+    () => filterServices(getAdultServices(), serviceQuery),
+    [serviceQuery],
+  )
+  const careServices = useMemo(
+    () => filterServices(getCareServices(), serviceQuery),
+    [serviceQuery],
+  )
+  const kidsServices = useMemo(
+    () => filterServices(getKidsServices(), serviceQuery),
+    [serviceQuery],
+  )
+  const serviceMatchCount = adultServices.length + careServices.length + kidsServices.length
+
   function selectService(id: string) {
     setServiceId(id)
     setDate('')
@@ -123,6 +150,26 @@ export function Booking() {
     setAddonIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     )
+  }
+
+  function onInspoPicked(file: File | null) {
+    setError('')
+    if (inspoPreview) {
+      URL.revokeObjectURL(inspoPreview)
+      setInspoPreview(null)
+    }
+    if (!file) {
+      setInspoFile(null)
+      return
+    }
+    const problem = validateInspoFile(file)
+    if (problem) {
+      setError(problem)
+      setInspoFile(null)
+      return
+    }
+    setInspoFile(file)
+    setInspoPreview(URL.createObjectURL(file))
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -145,23 +192,31 @@ export function Booking() {
       return
     }
 
-    const options = {
-      serviceId: service.id,
-      date,
-      slot,
-      clientName,
-      phone,
-      email,
-      size: service.hasSizes === false ? undefined : size,
-      lengthId,
-      addonIds,
-      mobileService,
-      mobileZoneId: mobileService && mobileZoneId ? mobileZoneId : undefined,
-      mobileAddress: mobileService ? mobileAddress : undefined,
-    }
-
     setSubmitting(true)
+    let inspoUrl: string | undefined
     try {
+      if (inspoFile) {
+        setInspoUploading(true)
+        inspoUrl = await uploadInspoFile(inspoFile)
+      }
+
+      const options = {
+        serviceId: service.id,
+        date,
+        slot,
+        clientName,
+        phone,
+        email,
+        size: service.hasSizes === false ? undefined : size,
+        lengthId,
+        addonIds,
+        mobileService,
+        mobileZoneId: mobileService && mobileZoneId ? mobileZoneId : undefined,
+        mobileAddress: mobileService ? mobileAddress : undefined,
+        inspoUrl,
+        notesAccommodations: notesAccommodations.trim() || undefined,
+      }
+
       let booking: Booking
       if (mode === 'listed') {
         booking = await createListedBooking(options)
@@ -170,6 +225,7 @@ export function Booking() {
         if (!Number.isFinite(amount) || amount <= 0) {
           setError('Enter a valid offer amount.')
           setSubmitting(false)
+          setInspoUploading(false)
           return
         }
         booking = await createOffer({
@@ -181,9 +237,11 @@ export function Booking() {
       setResult(booking)
       // Listed price + accepted offers land on confirmation (awaiting deposit)
       setStep('done')
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(msg)
     } finally {
+      setInspoUploading(false)
       setSubmitting(false)
     }
   }
@@ -283,15 +341,44 @@ export function Booking() {
       {step === 'service' && (
         <div className="mt-6 space-y-6">
           <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand" htmlFor="book-service-search">
+              Search styles
+            </label>
+            <input
+              id="book-service-search"
+              className="input-field"
+              type="search"
+              value={serviceQuery}
+              onChange={(e) => setServiceQuery(e.target.value)}
+              placeholder="Search knotless, crochet, kids…"
+              autoComplete="off"
+            />
+            {serviceQuery.trim() && (
+              <p className="mt-2 text-xs text-brand/55">
+                {serviceMatchCount === 0
+                  ? 'No styles match — try another word.'
+                  : `${serviceMatchCount} style${serviceMatchCount === 1 ? '' : 's'}`}
+              </p>
+            )}
+          </div>
+
+          {adultServices.length > 0 && (
+          <div>
             <p className="mb-3 text-sm font-medium text-brand">Adult styles</p>
             <div className="space-y-3">
-              {getAdultServices().map((s) => (
+              {adultServices.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => selectService(s.id)}
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
                 >
+                  <PhotoSlot
+                    src={s.image ?? servicePhotoPath(s.id)}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-xl"
+                    label="Soon"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand">{s.name}</p>
                     <p className="text-xs text-brand/55">
@@ -303,20 +390,28 @@ export function Booking() {
               ))}
             </div>
           </div>
+          )}
 
+          {careServices.length > 0 && (
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Take outs &amp; detangling</p>
             <p className="mb-3 text-xs text-brand/55">
               Removal and no-wash detangle only — no wash services.
             </p>
             <div className="space-y-3">
-              {getCareServices().map((s) => (
+              {careServices.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => selectService(s.id)}
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
                 >
+                  <PhotoSlot
+                    src={s.image ?? servicePhotoPath(s.id)}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-xl"
+                    label="Soon"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand">{s.name}</p>
                     <p className="text-xs text-brand/55">
@@ -328,20 +423,28 @@ export function Booking() {
               ))}
             </div>
           </div>
+          )}
 
+          {kidsServices.length > 0 && (
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Kids · ages 4–11</p>
             <p className="mb-3 text-xs text-brand/55">
               Soft tension, shorter appointments, styles made for school and play.
             </p>
             <div className="space-y-3">
-              {getKidsServices().map((s) => (
+              {kidsServices.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => selectService(s.id)}
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
                 >
+                  <PhotoSlot
+                    src={s.image ?? servicePhotoPath(s.id)}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-xl"
+                    label="Soon"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand">{s.name}</p>
                     <p className="text-xs text-brand/55">
@@ -353,12 +456,32 @@ export function Booking() {
               ))}
             </div>
           </div>
+          )}
+
+          {serviceQuery.trim() && serviceMatchCount === 0 && (
+            <div className="card-soft px-4 py-8 text-center text-sm text-brand/60">
+              <p>No styles found for “{serviceQuery.trim()}”.</p>
+              <button
+                type="button"
+                className="mt-3 text-sm font-semibold text-accent"
+                onClick={() => setServiceQuery('')}
+              >
+                Clear search
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {step === 'options' && service && (
         <div className="mt-6 space-y-5">
           <div className="card-soft flex items-center gap-3 p-3">
+            <PhotoSlot
+              src={service.image ?? servicePhotoPath(service.id)}
+              alt=""
+              className="h-12 w-12 shrink-0 rounded-xl"
+              label="Soon"
+            />
             <div className="flex-1">
               <p className="font-semibold text-brand">{service.name}</p>
               <p className="text-xs text-brand/55">Base from {formatPrice(service.price)}</p>
@@ -511,7 +634,7 @@ export function Booking() {
                 type="button"
                 onClick={() => {
                   setMobileService(true)
-                  if (!mobileZoneId) setMobileZoneId('calgary')
+                  if (!mobileZoneId) setMobileZoneId('nw')
                 }}
                 className={`rounded-xl border px-3 py-3 text-left transition ${
                   mobileService
@@ -528,9 +651,16 @@ export function Booking() {
 
             {mobileService && (
               <div className="mt-3 space-y-2">
-                <p className="text-xs text-brand/55">
-                  Travel fee depends on where you are — pick the closest match.
-                </p>
+                <div className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
+                  <p>
+                    I&apos;m based in <strong className="text-brand">{MOBILE_BASE.area}</strong> and
+                    take Uber/Lyft <strong className="text-brand">both ways</strong> (to you and
+                    home). Your travel fee covers that round trip — not an extra markup on the
+                    braids.
+                  </p>
+                  <p className="mt-2">{MOBILE_BASE.marketAverage}</p>
+                </div>
+                <p className="text-xs text-brand/55">Pick your quadrant or city:</p>
                 {MOBILE_ZONES.map((zone) => (
                   <button
                     key={zone.id}
@@ -555,7 +685,7 @@ export function Booking() {
                   </label>
                   <input
                     className="input-field"
-                    placeholder="e.g. NW Calgary, or full address"
+                    placeholder="e.g. Bridgeland NE, or full address"
                     value={mobileAddress}
                     onChange={(e) => setMobileAddress(e.target.value)}
                   />
@@ -571,8 +701,8 @@ export function Booking() {
             </div>
             {mobileService && mobileZoneId && (
               <p className="mt-1 text-xs text-brand/60">
-                Includes {formatPrice(getMobileZone(mobileZoneId)!.price)} mobile travel (
-                {getMobileZone(mobileZoneId)!.label})
+                Includes {formatPrice(getMobileZone(mobileZoneId)!.price)} travel (
+                {getMobileZone(mobileZoneId)!.label}) for Uber/Lyft both ways
               </p>
             )}
             <p className="mt-1 text-xs text-brand/60">
@@ -806,6 +936,67 @@ export function Booking() {
             />
           </div>
 
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand">
+              Upload your inspo (photo or video){' '}
+              <span className="font-normal text-brand/45">(optional)</span>
+            </label>
+            <p className="mb-2 text-xs text-brand/55">
+              JPG, PNG, WebP, MP4, or MOV · max 20MB. For longer clips, send a short video or a
+              screenshot of the key look.
+            </p>
+            <input
+              className="block w-full text-sm text-brand/70 file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+              type="file"
+              accept={INSPO_ACCEPT}
+              onChange={(e) => onInspoPicked(e.target.files?.[0] ?? null)}
+            />
+            {inspoFile && inspoPreview && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-brand/10 bg-lilac/40">
+                {inspoFile.type.startsWith('video/') || /\.(mp4|mov)$/i.test(inspoFile.name) ? (
+                  <video src={inspoPreview} controls className="max-h-48 w-full object-contain" />
+                ) : (
+                  <img
+                    src={inspoPreview}
+                    alt="Inspo preview"
+                    className="max-h-48 w-full object-contain"
+                  />
+                )}
+                <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-brand/60">
+                  <span className="truncate">{inspoFile.name}</span>
+                  <button
+                    type="button"
+                    className="shrink-0 font-semibold text-accent"
+                    onClick={() => onInspoPicked(null)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+            {inspoUploading && (
+              <p className="mt-2 text-xs font-medium text-accent">Uploading your inspo…</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand">
+              Allergies, sensitivities, or accommodations?{' '}
+              <span className="font-normal text-brand/45">(optional)</span>
+            </label>
+            <p className="mb-2 text-xs text-brand/55">
+              Let me know anything I should be aware of — scalp sensitivities, product allergies,
+              mobility needs, or anything that helps me take care of you. All accommodations
+              welcome.
+            </p>
+            <textarea
+              className="input-field min-h-[100px] resize-y"
+              value={notesAccommodations}
+              onChange={(e) => setNotesAccommodations(e.target.value)}
+              placeholder="Optional — share whatever helps me care for you"
+            />
+          </div>
+
           <p className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
             By booking, you agree that hair will be <strong>pre-stretched</strong>, a{' '}
             <strong>{formatPrice(CONFIG.depositAmount)} e-Transfer deposit</strong> is required to
@@ -817,12 +1008,18 @@ export function Booking() {
             <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
           )}
 
-          <button type="submit" className="btn-primary w-full" disabled={submitting}>
-            {submitting
-              ? 'Submitting…'
-              : mode === 'listed'
-                ? 'Confirm booking'
-                : 'Send offer'}
+          <button
+            type="submit"
+            className="btn-primary w-full"
+            disabled={submitting || inspoUploading}
+          >
+            {inspoUploading
+              ? 'Uploading inspo…'
+              : submitting
+                ? 'Submitting…'
+                : mode === 'listed'
+                  ? 'Confirm booking'
+                  : 'Send offer'}
           </button>
         </form>
       )}

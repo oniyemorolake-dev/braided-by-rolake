@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CONFIG, SERVICES } from '../data'
 import { ServiceCard } from '../components/ServiceCard'
+import { ReviewsSection } from '../components/ReviewsSection'
 
 const reasons = [
   {
@@ -97,6 +98,8 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      <ReviewsSection limit={4} showSeeAll />
 
       {/* CTA band */}
       <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">

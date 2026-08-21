@@ -40,6 +40,8 @@ export interface CreateListedInput {
   mobileService?: boolean
   mobileZoneId?: MobileZoneId
   mobileAddress?: string
+  inspoUrl?: string
+  notesAccommodations?: string
 }
 
 export interface CreateOfferInput extends CreateListedInput {
@@ -169,6 +171,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileAddress,
       depositAmount,
       depositPaid: false,
+      inspoUrl: input.inspoUrl,
+      notesAccommodations: input.notesAccommodations?.trim() || undefined,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -216,6 +220,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileAddress,
       depositAmount,
       depositPaid: false,
+      inspoUrl: input.inspoUrl,
+      notesAccommodations: input.notesAccommodations?.trim() || undefined,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }

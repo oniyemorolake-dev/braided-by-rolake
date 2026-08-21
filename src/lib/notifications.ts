@@ -11,6 +11,7 @@ import {
   getLengthOption,
 } from '../data'
 import type { Booking } from '../data'
+import type { Review } from './reviews'
 
 /**
  * Free email notifications via Web3Forms — no backend required.
@@ -49,6 +50,9 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     `Client: ${booking.clientName} · ${booking.phone} · ${booking.email}`,
     `Price: $${amount}`,
     '',
+    `INSPO: ${booking.inspoUrl || '(none uploaded)'}`,
+    `ACCOMMODATIONS / ALLERGIES: ${booking.notesAccommodations || '(none noted)'}`,
+    '',
     `DEPOSIT: $${deposit} via Interac e-Transfer to ${CONFIG.depositEmail}`,
     CONFIG.depositInstructions,
     'Booking is only confirmed once the deposit is received. Remaining balance is paid in person.',
@@ -85,11 +89,75 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     remaining_balance: 'Paid in person',
     cancellation_notice: formatCancelNotice(),
     prep_instructions: prepBlock,
+    inspo_url: booking.inspoUrl || '(none)',
+    allergies_accommodations: booking.notesAccommodations || '(none)',
     booking_type: booking.type,
     status: booking.status,
     note: booking.note || '(none)',
     counter_amount: booking.counterAmount != null ? `$${booking.counterAmount}` : '(n/a)',
     booking_id: booking.id,
+  }
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    const data = (await res.json()) as { success?: boolean; message?: string }
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message || 'Email send failed' }
+    }
+    return { ok: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Network error'
+    console.error('[Web3Forms]', message)
+    return { ok: false, error: message }
+  }
+}
+
+/**
+ * Notify owner when a client submits a new review (pending moderation).
+ */
+export async function notifyOwnerOfReview(review: Review): Promise<{ ok: boolean; error?: string }> {
+  const key = CONFIG.web3formsAccessKey
+
+  if (!key || key.includes('PASTE_YOUR')) {
+    console.warn('[Web3Forms] Access key not set — skipping email notification.')
+    return { ok: false, error: 'Access key not configured' }
+  }
+
+  const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)
+  const subject = `New review (${review.rating}/5) from ${review.name}`
+
+  const message = [
+    'A new review was submitted and is waiting for approval.',
+    '',
+    `Name: ${review.name}`,
+    `Rating: ${stars} (${review.rating}/5)`,
+    `Style: ${review.style || '(not specified)'}`,
+    '',
+    'Review:',
+    review.text,
+    '',
+    `Review ID: ${review.id}`,
+    'Approve or hide it in Admin → Reviews.',
+  ].join('\n')
+
+  const payload = {
+    access_key: key,
+    subject,
+    from_name: 'Braided by Rolake Reviews',
+    message,
+    client_name: review.name,
+    rating: String(review.rating),
+    style: review.style || '(none)',
+    review_text: review.text,
+    review_id: review.id,
+    status: review.status,
   }
 
   try {

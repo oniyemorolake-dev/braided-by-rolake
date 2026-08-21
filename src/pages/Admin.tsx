@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   CONFIG,
@@ -14,8 +14,17 @@ import {
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { StatusBadge } from '../components/StatusBadge'
+import { StarRating } from '../components/StarRating'
+import { isInspoVideo } from '../lib/inspoUpload'
+import {
+  loadAllReviewsAdmin,
+  setReviewStatusAdmin,
+  type Review,
+  type ReviewStatus,
+} from '../lib/reviews'
 
 type Tab = 'all' | 'pending' | 'awaiting' | 'confirmed'
+type Panel = 'bookings' | 'reviews'
 
 export function Admin() {
   const {
@@ -34,8 +43,44 @@ export function Admin() {
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [tab, setTab] = useState<Tab>('pending')
+  const [panel, setPanel] = useState<Panel>('bookings')
   const [counterDrafts, setCounterDrafts] = useState<Record<string, string>>({})
   const [refreshing, setRefreshing] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [reviewsError, setReviewsError] = useState('')
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null)
+
+  async function refreshReviews() {
+    setReviewsLoading(true)
+    setReviewsError('')
+    try {
+      const list = await loadAllReviewsAdmin()
+      setReviews(list)
+    } catch (err) {
+      setReviewsError(err instanceof Error ? err.message : 'Could not load reviews.')
+    } finally {
+      setReviewsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!authed || panel !== 'reviews') return
+    void refreshReviews()
+  }, [authed, panel])
+
+  async function moderateReview(id: string, status: ReviewStatus) {
+    setReviewBusyId(id)
+    setReviewsError('')
+    try {
+      const updated = await setReviewStatusAdmin(id, status)
+      setReviews((prev) => prev.map((r) => (r.id === id ? updated : r)))
+    } catch (err) {
+      setReviewsError(err instanceof Error ? err.message : 'Could not update review.')
+    } finally {
+      setReviewBusyId(null)
+    }
+  }
 
   function handleLogin(e: FormEvent) {
     e.preventDefault()
@@ -86,7 +131,7 @@ export function Admin() {
       <div className="mx-auto flex min-h-[60vh] max-w-sm flex-col justify-center px-4 py-12">
         <h1 className="font-display text-3xl font-semibold text-brand">Admin</h1>
         <p className="mt-2 text-sm text-brand/60">
-          Sign in to manage bookings and offers. Change the password in{' '}
+          Sign in to manage bookings, offers, and reviews. Change the password in{' '}
           <code className="text-accent">src/data.ts</code> before going live.
         </p>
         <form onSubmit={handleLogin} className="mt-6 space-y-3">
@@ -122,13 +167,17 @@ export function Admin() {
           <button
             type="button"
             className="btn-secondary !px-4 !py-2 text-sm"
-            disabled={refreshing}
+            disabled={refreshing || reviewsLoading}
             onClick={() => {
+              if (panel === 'reviews') {
+                void refreshReviews()
+                return
+              }
               setRefreshing(true)
               void refreshBookings().finally(() => setRefreshing(false))
             }}
           >
-            {refreshing ? 'Refreshing…' : 'Refresh'}
+            {refreshing || reviewsLoading ? 'Refreshing…' : 'Refresh'}
           </button>
           <button type="button" onClick={logout} className="btn-secondary !px-4 !py-2 text-sm">
             Log out
@@ -136,6 +185,110 @@ export function Admin() {
         </div>
       </div>
 
+      <div className="mt-6 flex gap-1 rounded-2xl bg-brand/5 p-1">
+        {(
+          [
+            ['bookings', 'Bookings'],
+            ['reviews', 'Reviews'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setPanel(key)}
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+              panel === key ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {panel === 'reviews' ? (
+        <div className="mt-6 space-y-4">
+          <p className="text-sm text-brand/60">
+            New reviews start as pending. Approve to show them on the site, or hide anytime.
+          </p>
+          {reviewsError && <p className="text-sm text-rose-600">{reviewsError}</p>}
+          {reviewsLoading && reviews.length === 0 ? (
+            <p className="text-sm text-brand/50">Loading reviews…</p>
+          ) : reviews.length === 0 ? (
+            <div className="card-soft px-6 py-12 text-center">
+              <p className="font-display text-2xl text-brand">No reviews yet</p>
+              <p className="mt-2 text-sm text-brand/60">
+                When clients submit a review, it will appear here for approval.
+              </p>
+            </div>
+          ) : (
+            reviews.map((r) => (
+              <article key={r.id} className="card-soft p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-display text-xl font-semibold text-brand">{r.name}</p>
+                    {r.style && (
+                      <p className="text-xs font-medium uppercase tracking-wide text-accent/80">
+                        {r.style}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      r.status === 'approved'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : r.status === 'hidden'
+                          ? 'bg-rose-50 text-rose-700'
+                          : 'bg-amber-50 text-amber-800'
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <StarRating rating={r.rating} size="sm" />
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-brand/75">&ldquo;{r.text}&rdquo;</p>
+                <p className="mt-2 font-mono text-xs text-brand/35">
+                  {new Date(r.createdAt).toLocaleString()} · {r.id}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-brand/10 pt-4">
+                  {r.status !== 'approved' && (
+                    <button
+                      type="button"
+                      className="btn-primary !px-4 !py-2 text-sm"
+                      disabled={reviewBusyId === r.id}
+                      onClick={() => void moderateReview(r.id, 'approved')}
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {r.status !== 'hidden' && (
+                    <button
+                      type="button"
+                      className="btn-secondary !px-4 !py-2 text-sm"
+                      disabled={reviewBusyId === r.id}
+                      onClick={() => void moderateReview(r.id, 'hidden')}
+                    >
+                      Hide
+                    </button>
+                  )}
+                  {r.status === 'hidden' && (
+                    <button
+                      type="button"
+                      className="btn-secondary !px-4 !py-2 text-sm"
+                      disabled={reviewBusyId === r.id}
+                      onClick={() => void moderateReview(r.id, 'pending')}
+                    >
+                      Mark pending
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      ) : (
+        <>
       <div className="mt-6 flex flex-wrap gap-1 rounded-2xl bg-lilac/70 p-1">
         {(
           [
@@ -273,6 +426,40 @@ export function Admin() {
                       {b.note}
                     </div>
                   )}
+                  {b.notesAccommodations && (
+                    <div className="sm:col-span-2 rounded-xl bg-lilac/50 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                        Allergies / accommodations
+                      </p>
+                      <p className="mt-1 text-brand">{b.notesAccommodations}</p>
+                    </div>
+                  )}
+                  {b.inspoUrl && (
+                    <div className="sm:col-span-2">
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-brand/45">
+                        Client inspo
+                      </p>
+                      <a
+                        href={b.inspoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-3 rounded-xl border border-brand/10 bg-white p-2 transition hover:border-accent/40"
+                      >
+                        {isInspoVideo(b.inspoUrl) ? (
+                          <span className="flex h-16 w-16 items-center justify-center rounded-lg bg-lilac text-xs font-semibold text-accent">
+                            Video
+                          </span>
+                        ) : (
+                          <img
+                            src={b.inspoUrl}
+                            alt="Client inspo"
+                            className="h-16 w-16 rounded-lg object-cover"
+                          />
+                        )}
+                        <span className="text-sm font-semibold text-accent">Open inspo →</span>
+                      </a>
+                    </div>
+                  )}
                   <div className="sm:col-span-2 font-mono text-xs text-brand/40">{b.id}</div>
                 </dl>
 
@@ -339,8 +526,12 @@ export function Admin() {
           })
         )}
       </div>
+        </>
+      )}
 
       <div className="mt-10 border-t border-brand/10 pt-6">
+        {panel === 'bookings' && (
+          <>
         <button
           type="button"
           className="text-xs text-rose-600/80 hover:underline"
@@ -357,6 +548,8 @@ export function Admin() {
             ? 'Bookings sync from Supabase so you see every client booking.'
             : 'Data is stored in this browser only until Supabase env vars are set.'}
         </p>
+          </>
+        )}
         <Link to="/" className="mt-4 inline-block text-sm text-accent hover:underline">
           ← Back to site
         </Link>
