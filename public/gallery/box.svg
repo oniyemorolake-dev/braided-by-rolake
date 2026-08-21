@@ -1,0 +1,18 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" role="img" aria-label="Box Braids placeholder">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F3E3FB"/>
+      <stop offset="100%" stop-color="#4A1259"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="10">
+    <path d="M180 120 C220 280, 200 420, 240 560 C270 680, 230 820, 260 940"/>
+    <path d="M280 100 C320 260, 300 400, 340 540 C370 660, 330 800, 360 940"/>
+    <path d="M380 90 C420 250, 400 390, 440 530 C470 650, 430 790, 460 940"/>
+    <path d="M480 100 C520 260, 500 400, 540 540 C570 660, 530 800, 560 940"/>
+    <path d="M580 120 C620 280, 600 420, 640 560 C670 680, 630 820, 660 940"/>
+  </g>
+  <rect x="160" y="780" width="480" height="90" rx="45" fill="#4A1259" fill-opacity="0.55"/>
+  <text x="400" y="838" text-anchor="middle" font-family="Georgia, serif" font-size="36" fill="#ffffff">Box Braids</text>
+</svg>
