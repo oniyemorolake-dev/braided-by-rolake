@@ -20,6 +20,9 @@ type Tab = 'all' | 'pending' | 'confirmed'
 export function Admin() {
   const {
     bookings,
+    loading,
+    storageMode,
+    refreshBookings,
     acceptOffer,
     declineOffer,
     counterOffer,
@@ -31,6 +34,7 @@ export function Admin() {
   const [loginError, setLoginError] = useState('')
   const [tab, setTab] = useState<Tab>('pending')
   const [counterDrafts, setCounterDrafts] = useState<Record<string, string>>({})
+  const [refreshing, setRefreshing] = useState(false)
 
   function handleLogin(e: FormEvent) {
     e.preventDefault()
@@ -104,11 +108,28 @@ export function Admin() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-semibold text-brand">Dashboard</h1>
-          <p className="text-sm text-brand/60">{bookings.length} total bookings & offers</p>
+          <p className="text-sm text-brand/60">
+            {loading ? 'Loading…' : `${bookings.length} total bookings & offers`}
+            {' · '}
+            {storageMode === 'supabase' ? 'Synced online (Supabase)' : 'Local only (this browser)'}
+          </p>
         </div>
-        <button type="button" onClick={logout} className="btn-secondary !px-4 !py-2 text-sm">
-          Log out
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn-secondary !px-4 !py-2 text-sm"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true)
+              void refreshBookings().finally(() => setRefreshing(false))
+            }}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <button type="button" onClick={logout} className="btn-secondary !px-4 !py-2 text-sm">
+            Log out
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 flex gap-1 rounded-2xl bg-lilac/70 p-1">
@@ -249,14 +270,14 @@ export function Admin() {
                       <button
                         type="button"
                         className="btn-primary !px-4 !py-2 text-sm"
-                        onClick={() => acceptOffer(b.id)}
+                        onClick={() => void acceptOffer(b.id)}
                       >
                         Accept
                       </button>
                       <button
                         type="button"
                         className="btn-secondary !px-4 !py-2 text-sm"
-                        onClick={() => declineOffer(b.id)}
+                        onClick={() => void declineOffer(b.id)}
                       >
                         Decline
                       </button>
@@ -278,7 +299,7 @@ export function Admin() {
                         onClick={() => {
                           const n = Number(counterDrafts[b.id])
                           if (!Number.isFinite(n) || n <= 0) return
-                          counterOffer(b.id, n)
+                          void counterOffer(b.id, n)
                         }}
                       >
                         Counter
@@ -297,15 +318,17 @@ export function Admin() {
           type="button"
           className="text-xs text-rose-600/80 hover:underline"
           onClick={() => {
-            if (confirm('Clear all local bookings? This cannot be undone.')) {
-              clearAllBookings()
+            if (confirm('Clear all bookings? This cannot be undone.')) {
+              void clearAllBookings()
             }
           }}
         >
           Clear all local data
         </button>
         <p className="mt-2 text-xs text-brand/40">
-          Data is stored in this browser&apos;s localStorage until you connect Supabase.
+          {storageMode === 'supabase'
+            ? 'Bookings sync from Supabase so you see every client booking.'
+            : 'Data is stored in this browser only until Supabase env vars are set.'}
         </p>
         <Link to="/" className="mt-4 inline-block text-sm text-accent hover:underline">
           ← Back to site

@@ -131,7 +131,7 @@ export function Status() {
               type="button"
               className="btn-primary w-full"
               disabled={!ack}
-              onClick={() => markDepositPaid(booking.id)}
+              onClick={() => void markDepositPaid(booking.id)}
             >
               Confirm booking
             </button>
@@ -143,14 +143,14 @@ export function Status() {
             <button
               type="button"
               className="btn-primary w-full"
-              onClick={() => clientAcceptCounter(booking.id)}
+              onClick={() => void clientAcceptCounter(booking.id)}
             >
               Accept {formatPrice(booking.counterAmount!)} & continue
             </button>
             <button
               type="button"
               className="btn-secondary w-full"
-              onClick={() => clientWalkAway(booking.id)}
+              onClick={() => void clientWalkAway(booking.id)}
             >
               Walk away
             </button>

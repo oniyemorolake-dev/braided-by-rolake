@@ -192,9 +192,10 @@ export function Booking() {
       <DepositPayView
         booking={result}
         onConfirm={() => {
-          markDepositPaid(result.id)
-          setResult({ ...result, depositPaid: true })
-          setStep('done')
+          void markDepositPaid(result.id).then(() => {
+            setResult({ ...result, depositPaid: true })
+            setStep('done')
+          })
         }}
       />
     )
@@ -205,19 +206,21 @@ export function Booking() {
       <ConfirmationView
         booking={result}
         onAcceptCounter={() => {
-          clientAcceptCounter(result.id)
-          const next = {
-            ...result,
-            status: 'confirmed' as const,
-            price: result.counterAmount ?? result.price,
-            depositPaid: false,
-          }
-          setResult(next)
-          setStep('deposit')
+          void clientAcceptCounter(result.id).then(() => {
+            const next = {
+              ...result,
+              status: 'confirmed' as const,
+              price: result.counterAmount ?? result.price,
+              depositPaid: false,
+            }
+            setResult(next)
+            setStep('deposit')
+          })
         }}
         onWalkAway={() => {
-          clientWalkAway(result.id)
-          setResult({ ...result, status: 'declined' })
+          void clientWalkAway(result.id).then(() => {
+            setResult({ ...result, status: 'declined' })
+          })
         }}
         onPayDeposit={() => setStep('deposit')}
       />

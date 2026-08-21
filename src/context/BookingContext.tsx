@@ -18,7 +18,14 @@ import {
   type MobileZoneId,
 } from '../data'
 import { notifyOwner } from '../lib/notifications'
-import { generateId, loadBookings, saveBookings } from '../lib/storage'
+import { isSupabaseConfigured } from '../lib/supabase'
+import {
+  clearAllBookingsRemote,
+  generateId,
+  insertBooking,
+  loadBookings,
+  updateBookingRemote,
+} from '../lib/storage'
 
 export interface CreateListedInput {
   serviceId: string
@@ -42,16 +49,19 @@ export interface CreateOfferInput extends CreateListedInput {
 
 interface BookingContextValue {
   bookings: Booking[]
+  loading: boolean
+  storageMode: 'supabase' | 'local'
+  refreshBookings: () => Promise<void>
   createListedBooking: (input: CreateListedInput) => Promise<Booking>
   createOffer: (input: CreateOfferInput) => Promise<Booking>
-  acceptOffer: (id: string) => void
-  declineOffer: (id: string) => void
-  counterOffer: (id: string, amount: number) => void
-  clientAcceptCounter: (id: string) => void
-  clientWalkAway: (id: string) => void
-  markDepositPaid: (id: string) => void
+  acceptOffer: (id: string) => Promise<void>
+  declineOffer: (id: string) => Promise<void>
+  counterOffer: (id: string, amount: number) => Promise<void>
+  clientAcceptCounter: (id: string) => Promise<void>
+  clientWalkAway: (id: string) => Promise<void>
+  markDepositPaid: (id: string) => Promise<void>
   getBooking: (id: string) => Booking | undefined
-  clearAllBookings: () => void
+  clearAllBookings: () => Promise<void>
 }
 
 const BookingContext = createContext<BookingContextValue | null>(null)
@@ -91,22 +101,39 @@ function buildPriceFields(input: CreateListedInput) {
 }
 
 export function BookingProvider({ children }: { children: ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>(() => loadBookings())
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const refreshBookings = useCallback(async () => {
+    const list = await loadBookings()
+    setBookings(list)
+  }, [])
 
   useEffect(() => {
-    saveBookings(bookings)
-  }, [bookings])
+    let cancelled = false
+    ;(async () => {
+      try {
+        const list = await loadBookings()
+        if (!cancelled) setBookings(list)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const updateBooking = useCallback(
-    (id: string, patch: Partial<Booking>) => {
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.id === id ? { ...b, ...patch, updatedAt: nowIso() } : b,
-        ),
-      )
-    },
-    [],
-  )
+  // Poll every 20s so admin sees new bookings without refresh
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    const id = window.setInterval(() => {
+      void refreshBookings()
+    }, 20_000)
+    return () => window.clearInterval(id)
+  }, [refreshBookings])
 
   const createListedBooking = useCallback(async (input: CreateListedInput) => {
     const {
@@ -143,9 +170,10 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       updatedAt: nowIso(),
     }
 
-    setBookings((prev) => [booking, ...prev])
-    void notifyOwner(booking)
-    return booking
+    const saved = await insertBooking(booking)
+    setBookings((prev) => [saved, ...prev.filter((b) => b.id !== saved.id)])
+    void notifyOwner(saved)
+    return saved
   }, [])
 
   const createOffer = useCallback(async (input: CreateOfferInput) => {
@@ -189,96 +217,76 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       updatedAt: nowIso(),
     }
 
-    setBookings((prev) => [booking, ...prev])
+    const saved = await insertBooking(booking)
+    setBookings((prev) => [saved, ...prev.filter((b) => b.id !== saved.id)])
     if (!belowFloor) {
-      void notifyOwner(booking)
+      void notifyOwner(saved)
     }
-    return booking
+    return saved
   }, [])
 
-  const acceptOffer = useCallback((id: string) => {
-    setBookings((prev) => {
-      const next = prev.map((b) => {
-        if (b.id !== id) return b
-        const finalPrice = b.counterAmount ?? b.offerAmount ?? b.price
-        return {
-          ...b,
-          status: 'confirmed' as BookingStatus,
-          price: finalPrice,
-          updatedAt: nowIso(),
-        }
-      })
-      const confirmed = next.find((b) => b.id === id)
-      if (confirmed) void notifyOwner(confirmed)
-      return next
+  const acceptOffer = useCallback(async (id: string) => {
+    const current = (await loadBookings()).find((b) => b.id === id)
+    if (!current) return
+    const finalPrice = current.counterAmount ?? current.offerAmount ?? current.price
+    const saved = await updateBookingRemote(id, {
+      status: 'confirmed' as BookingStatus,
+      price: finalPrice,
     })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+    void notifyOwner(saved)
   }, [])
 
-  const declineOffer = useCallback(
-    (id: string) => {
-      updateBooking(id, { status: 'declined' })
-    },
-    [updateBooking],
-  )
-
-  const counterOffer = useCallback((id: string, amount: number) => {
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === id
-          ? {
-              ...b,
-              status: 'countered' as BookingStatus,
-              counterAmount: amount,
-              updatedAt: nowIso(),
-            }
-          : b,
-      ),
-    )
+  const declineOffer = useCallback(async (id: string) => {
+    const saved = await updateBookingRemote(id, { status: 'declined' })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
   }, [])
 
-  const clientAcceptCounter = useCallback((id: string) => {
-    setBookings((prev) => {
-      const next = prev.map((b) => {
-        if (b.id !== id || b.counterAmount == null) return b
-        return {
-          ...b,
-          status: 'confirmed' as BookingStatus,
-          price: b.counterAmount,
-          updatedAt: nowIso(),
-        }
-      })
-      const confirmed = next.find((b) => b.id === id)
-      if (confirmed?.status === 'confirmed') void notifyOwner(confirmed)
-      return next
+  const counterOffer = useCallback(async (id: string, amount: number) => {
+    const saved = await updateBookingRemote(id, {
+      status: 'countered',
+      counterAmount: amount,
     })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
   }, [])
 
-  const clientWalkAway = useCallback(
-    (id: string) => {
-      updateBooking(id, { status: 'declined' })
-    },
-    [updateBooking],
-  )
+  const clientAcceptCounter = useCallback(async (id: string) => {
+    const current = (await loadBookings()).find((b) => b.id === id)
+    if (!current || current.counterAmount == null) return
+    const saved = await updateBookingRemote(id, {
+      status: 'confirmed',
+      price: current.counterAmount,
+    })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+    void notifyOwner(saved)
+  }, [])
 
-  const markDepositPaid = useCallback(
-    (id: string) => {
-      updateBooking(id, { depositPaid: true })
-    },
-    [updateBooking],
-  )
+  const clientWalkAway = useCallback(async (id: string) => {
+    const saved = await updateBookingRemote(id, { status: 'declined' })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+  }, [])
+
+  const markDepositPaid = useCallback(async (id: string) => {
+    const saved = await updateBookingRemote(id, { depositPaid: true })
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+  }, [])
 
   const getBooking = useCallback(
     (id: string) => bookings.find((b) => b.id === id),
     [bookings],
   )
 
-  const clearAllBookings = useCallback(() => {
+  const clearAllBookings = useCallback(async () => {
+    await clearAllBookingsRemote()
     setBookings([])
   }, [])
 
   const value = useMemo(
     () => ({
       bookings,
+      loading,
+      storageMode: isSupabaseConfigured ? ('supabase' as const) : ('local' as const),
+      refreshBookings,
       createListedBooking,
       createOffer,
       acceptOffer,
@@ -292,6 +300,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     }),
     [
       bookings,
+      loading,
+      refreshBookings,
       createListedBooking,
       createOffer,
       acceptOffer,
