@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
 import {
   CONFIG,
   formatAddonsLabel,
@@ -15,8 +16,9 @@ import { StatusBadge } from '../components/StatusBadge'
 
 export function Status() {
   const { id } = useParams<{ id: string }>()
-  const { getBooking, clientAcceptCounter, clientWalkAway } = useBookings()
+  const { getBooking, clientAcceptCounter, clientWalkAway, markDepositPaid } = useBookings()
   const booking = id ? getBooking(id) : undefined
+  const [ack, setAck] = useState(false)
 
   if (!booking) {
     return (
@@ -35,19 +37,33 @@ export function Status() {
   const service = getServiceById(booking.serviceId)
   const isConfirmed = booking.status === 'confirmed'
   const isCountered = booking.status === 'countered'
+  const needsDeposit = isConfirmed && !booking.depositPaid
+  const deposit = booking.depositAmount ?? CONFIG.depositAmount
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
       <div className="card-soft p-6">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-3xl font-semibold text-brand">Your booking</h1>
+          <h1 className="font-display text-3xl font-semibold text-brand">
+            {needsDeposit ? 'Pay your deposit' : 'Your booking'}
+          </h1>
           <StatusBadge status={booking.status} />
         </div>
 
         <p className="mt-2 text-sm text-brand/65">
-          Status updates live as Rolake reviews your request: Pending → Accepted / Countered /
-          Declined → Confirmed.
+          {needsDeposit
+            ? 'Send your Interac e-Transfer, then confirm below to finish.'
+            : 'Status updates live as Rolake reviews your request: Pending → Accepted / Countered / Declined → Confirmed.'}
         </p>
+
+        {needsDeposit && (
+          <div className="mt-5 rounded-2xl bg-accent px-5 py-5 text-center text-white">
+            <p className="text-sm text-white/80">Send</p>
+            <p className="font-display text-4xl font-semibold">{formatPrice(deposit)}</p>
+            <p className="mt-1 text-sm text-white/85">to {CONFIG.depositEmail}</p>
+            <p className="mt-2 text-xs text-white/75">{CONFIG.depositInstructions}</p>
+          </div>
+        )}
 
         <dl className="mt-6 space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
@@ -74,20 +90,21 @@ export function Status() {
           )}
           <Row
             label="Deposit"
-            value={formatPrice(booking.depositAmount ?? CONFIG.depositAmount)}
+            value={
+              booking.depositPaid
+                ? `${formatPrice(deposit)} · marked sent`
+                : formatPrice(deposit)
+            }
           />
-          {isConfirmed && !booking.mobileService && (
+          {isConfirmed && booking.depositPaid && !booking.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
                 Studio address
               </p>
               <p className="mt-1 font-medium text-brand">{CONFIG.studioAddress}</p>
-              <p className="mt-2 text-xs text-brand/60">
-                Arrive with hair pre-stretched. Extensions only if requested in advance.
-              </p>
             </div>
           )}
-          {isConfirmed && booking.mobileService && (
+          {isConfirmed && booking.depositPaid && booking.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
                 Mobile appointment
@@ -95,12 +112,31 @@ export function Status() {
               <p className="mt-1 font-medium text-brand">
                 {booking.mobileAddress || 'Address on file'}
               </p>
-              <p className="mt-2 text-xs text-brand/60">
-                Rolake comes to you. Have hair clean and pre-stretched.
-              </p>
             </div>
           )}
         </dl>
+
+        {needsDeposit && (
+          <div className="mt-6 space-y-3">
+            <label className="flex cursor-pointer items-start gap-3 text-sm text-brand/80">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={ack}
+                onChange={(e) => setAck(e.target.checked)}
+              />
+              <span>I have sent the {formatPrice(deposit)} e-Transfer deposit.</span>
+            </label>
+            <button
+              type="button"
+              className="btn-primary w-full"
+              disabled={!ack}
+              onClick={() => markDepositPaid(booking.id)}
+            >
+              Confirm booking
+            </button>
+          </div>
+        )}
 
         {isCountered && (
           <div className="mt-6 flex flex-col gap-2">
@@ -109,7 +145,7 @@ export function Status() {
               className="btn-primary w-full"
               onClick={() => clientAcceptCounter(booking.id)}
             >
-              Accept {formatPrice(booking.counterAmount!)} & confirm
+              Accept {formatPrice(booking.counterAmount!)} & continue
             </button>
             <button
               type="button"

@@ -49,6 +49,7 @@ interface BookingContextValue {
   counterOffer: (id: string, amount: number) => void
   clientAcceptCounter: (id: string) => void
   clientWalkAway: (id: string) => void
+  markDepositPaid: (id: string) => void
   getBooking: (id: string) => Booking | undefined
   clearAllBookings: () => void
 }
@@ -137,6 +138,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileZoneId,
       mobileAddress,
       depositAmount,
+      depositPaid: false,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -182,6 +184,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileZoneId,
       mobileAddress,
       depositAmount,
+      depositPaid: false,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -257,6 +260,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     [updateBooking],
   )
 
+  const markDepositPaid = useCallback(
+    (id: string) => {
+      updateBooking(id, { depositPaid: true })
+    },
+    [updateBooking],
+  )
+
   const getBooking = useCallback(
     (id: string) => bookings.find((b) => b.id === id),
     [bookings],
@@ -276,6 +286,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       counterOffer,
       clientAcceptCounter,
       clientWalkAway,
+      markDepositPaid,
       getBooking,
       clearAllBookings,
     }),
@@ -288,6 +299,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       counterOffer,
       clientAcceptCounter,
       clientWalkAway,
+      markDepositPaid,
       getBooking,
       clearAllBookings,
     ],

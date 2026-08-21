@@ -232,6 +232,7 @@ export function Admin() {
                   <div>
                     <span className="text-brand/45">Deposit · </span>
                     {formatPrice(b.depositAmount ?? CONFIG.depositAmount)}
+                    {b.depositPaid ? ' · paid (client marked)' : ' · unpaid'}
                   </div>
                   {b.note && (
                     <div className="sm:col-span-2">

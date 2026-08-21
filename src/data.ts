@@ -84,6 +84,8 @@ export interface Booking {
   /** Area or street address for mobile appointments */
   mobileAddress?: string
   depositAmount?: number
+  /** Client marked e-Transfer as sent */
+  depositPaid?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -139,7 +141,7 @@ export const CONFIG: BusinessConfig = {
   workEndHour: 19,
   bufferMinutes: 60,
   slotIntervalMinutes: 60,
-  adminPassword: 'rolake2024',
+  adminPassword: 'Morolake2024.',
   web3formsAccessKey: '51a35843-c702-4cd1-8f50-af5d97571a74',
 }
 
