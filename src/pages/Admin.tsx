@@ -30,6 +30,8 @@ import {
   discountTypeLabel,
   type DiscountRecord,
 } from '../lib/discounts'
+import { AdminCalendar } from '../components/AdminCalendar'
+import { notifyOwnerOfCancellation } from '../lib/notifications'
 
 type Tab = 'all' | 'pending' | 'awaiting' | 'confirmed'
 type Panel = 'bookings' | 'reviews' | 'discounts'
@@ -52,6 +54,7 @@ export function Admin() {
   const [loginError, setLoginError] = useState('')
   const [tab, setTab] = useState<Tab>('pending')
   const [panel, setPanel] = useState<Panel>('bookings')
+  const [bookingsView, setBookingsView] = useState<'list' | 'calendar'>('list')
   const [counterDrafts, setCounterDrafts] = useState<Record<string, string>>({})
   const [refreshing, setRefreshing] = useState(false)
   const [reviews, setReviews] = useState<Review[]>([])
@@ -102,6 +105,20 @@ export function Admin() {
     if (!authed || panel !== 'discounts') return
     void refreshDiscounts()
   }, [authed, panel])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const apply = () => setBookingsView(mq.matches ? 'calendar' : 'list')
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+
+  async function handleDecline(id: string) {
+    const booking = bookings.find((b) => b.id === id)
+    await declineOffer(id)
+    if (booking) void notifyOwnerOfCancellation(booking)
+  }
 
   async function moderateReview(id: string, status: ReviewStatus) {
     setReviewBusyId(id)
@@ -192,7 +209,7 @@ export function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className={`mx-auto px-4 py-8 sm:px-6 sm:py-12 ${bookingsView === 'calendar' && panel === 'bookings' ? 'max-w-6xl' : 'max-w-3xl'}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-semibold text-brand">Dashboard</h1>
@@ -483,6 +500,38 @@ export function Admin() {
         </div>
       ) : (
         <>
+      <div className="mt-6 flex gap-1 rounded-2xl bg-brand/5 p-1">
+        {(
+          [
+            ['list', 'List'],
+            ['calendar', 'Calendar'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setBookingsView(key)}
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+              bookingsView === key ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {bookingsView === 'calendar' ? (
+        <div className="mt-6">
+          <AdminCalendar
+            bookings={bookings}
+            onMarkDepositReceived={(id) => void markDepositReceived(id)}
+            onDecline={(id) => void handleDecline(id)}
+            onAcceptOffer={(id) => void acceptOffer(id)}
+            onCounter={(id, amount) => void counterOffer(id, amount)}
+          />
+        </div>
+      ) : (
+        <>
       <div className="mt-6 flex flex-wrap gap-1 rounded-2xl bg-lilac/70 p-1">
         {(
           [
@@ -722,7 +771,7 @@ export function Admin() {
                     <button
                       type="button"
                       className="btn-secondary !px-4 !py-2 text-sm"
-                      onClick={() => void declineOffer(b.id)}
+                      onClick={() => void handleDecline(b.id)}
                     >
                       Decline
                     </button>
@@ -742,7 +791,7 @@ export function Admin() {
                       <button
                         type="button"
                         className="btn-secondary !px-4 !py-2 text-sm"
-                        onClick={() => void declineOffer(b.id)}
+                        onClick={() => void handleDecline(b.id)}
                       >
                         Decline
                       </button>
@@ -777,6 +826,8 @@ export function Admin() {
           })
         )}
       </div>
+        </>
+      )}
         </>
       )}
 

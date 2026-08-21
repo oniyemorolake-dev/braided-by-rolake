@@ -341,3 +341,51 @@ export async function notifyDiscountCodeEmail(input: {
     return { ok: false, error: errMessage }
   }
 }
+
+/** Record a cancellation / decline for the owner inbox */
+export async function notifyOwnerOfCancellation(
+  booking: Booking,
+): Promise<{ ok: boolean; error?: string }> {
+  const key = CONFIG.web3formsAccessKey
+  if (!key || key.includes('PASTE_YOUR')) {
+    return { ok: false, error: 'Access key not configured' }
+  }
+  const service = getServiceById(booking.serviceId)
+  const subject = `Cancelled — ${service?.name ?? 'Booking'} for ${booking.clientName}`
+  const message = [
+    'A booking was cancelled / declined. The slot and buffer are free again.',
+    '',
+    `Service: ${service?.name ?? booking.serviceId}`,
+    `When: ${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`,
+    `Client: ${booking.clientName} · ${booking.phone} · ${booking.email}`,
+    `Previous status before cancel action was handled in admin.`,
+    `Booking ID: ${booking.id}`,
+  ].join('\n')
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        access_key: key,
+        subject,
+        from_name: 'Braided by Rolake Bookings',
+        message,
+        booking_id: booking.id,
+        status: 'declined',
+      }),
+    })
+    const data = (await res.json()) as { success?: boolean; message?: string }
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message || 'Email send failed' }
+    }
+    return { ok: true }
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : 'Network error'
+    console.error('[Web3Forms]', errMessage)
+    return { ok: false, error: errMessage }
+  }
+}
