@@ -10,6 +10,7 @@ import {
   formatSlotLabel,
   getLengthOption,
   getServiceById,
+  isCustomQuoteService,
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { StatusBadge } from '../components/StatusBadge'
@@ -40,9 +41,13 @@ export function Status() {
   }
 
   const service = getServiceById(booking.serviceId)
+  const isCustom = isCustomQuoteService(service)
   const isConfirmed = booking.status === 'confirmed'
   const isAwaitingDeposit = booking.status === 'awaiting_deposit'
+  const isQuoteRequested = booking.status === 'quote_requested'
   const isCountered = booking.status === 'countered'
+  const isPending = booking.status === 'pending'
+  const isDeclined = booking.status === 'declined'
   const deposit = booking.depositAmount ?? CONFIG.depositAmount
 
   return (
@@ -54,7 +59,11 @@ export function Status() {
               ? 'Awaiting deposit'
               : isConfirmed
                 ? 'Confirmed'
-                : 'Your booking'}
+                : isQuoteRequested
+                  ? 'Quote requested'
+                  : isCountered && isCustom
+                    ? 'Your quote'
+                    : 'Your booking'}
           </h1>
           <StatusBadge status={booking.status} />
         </div>
@@ -64,9 +73,24 @@ export function Status() {
             `Send your ${formatPrice(deposit)} Interac e-Transfer to ${CONFIG.depositEmail}. Your booking becomes Confirmed once Rolake marks the deposit received. Remaining balance is paid in person.`}
           {isConfirmed &&
             'Your deposit was received and your appointment is confirmed. See prep tips below.'}
+          {isQuoteRequested &&
+            'Your custom request is waiting for a quote. This time slot is held tentatively — check back here for the price.'}
+          {isPending &&
+            'Your offer is pending review. This time slot is held for you.'}
+          {isCountered &&
+            isCustom &&
+            `Rolake quoted ${formatPrice(booking.counterAmount!)}. Accept to continue with the deposit, or decline to free the slot.`}
+          {isCountered &&
+            !isCustom &&
+            `Rolake countered at ${formatPrice(booking.counterAmount!)}. Accept to continue, or walk away.`}
+          {isDeclined && 'This request was declined and the time slot has been released.'}
           {!isAwaitingDeposit &&
             !isConfirmed &&
-            'Status updates as Rolake reviews your request: Pending → Accepted → Awaiting deposit → Confirmed.'}
+            !isQuoteRequested &&
+            !isPending &&
+            !isCountered &&
+            !isDeclined &&
+            'Status updates as Rolake reviews your request.'}
         </p>
 
         {isAwaitingDeposit && <DepositInstructions amount={deposit} />}
@@ -74,11 +98,15 @@ export function Status() {
         <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
           {booking.size && <Row label="Size" value={formatSizeLabel(booking.size)} />}
-          <Row
-            label="Length"
-            value={getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
-          />
-          <Row label="Add-ons" value={formatAddonsLabel(booking.addonIds)} />
+          {!isCustom && (
+            <>
+              <Row
+                label="Length"
+                value={getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
+              />
+              <Row label="Add-ons" value={formatAddonsLabel(booking.addonIds)} />
+            </>
+          )}
           <Row label="Location" value={formatMobileLabel(booking)} />
           {booking.mobileService && booking.mobileAddress && (
             <Row label="Address" value={booking.mobileAddress} />
@@ -88,11 +116,55 @@ export function Status() {
             value={`${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`}
           />
           <Row
-            label={booking.type === 'offer' ? 'Your offer' : 'Price'}
-            value={formatPrice(booking.offerAmount ?? booking.price)}
+            label={isQuoteRequested ? 'Price' : booking.type === 'offer' && !isCustom ? 'Your offer' : 'Price'}
+            value={
+              isQuoteRequested
+                ? 'Price on request'
+                : isCountered || isAwaitingDeposit || isConfirmed
+                  ? formatPrice(
+                      booking.counterAmount ??
+                        booking.offerAmount ??
+                        booking.price,
+                    )
+                  : formatPrice(booking.offerAmount ?? booking.price)
+            }
           />
-          {booking.counterAmount != null && (
+          {isCountered && booking.counterAmount != null && !isCustom && (
             <Row label="Counter offer" value={formatPrice(booking.counterAmount)} />
+          )}
+          {booking.note && (
+            <div className="rounded-xl bg-lilac/50 px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                {isCustom ? 'Your request' : 'Note'}
+              </p>
+              <p className="mt-1 text-brand">{booking.note}</p>
+            </div>
+          )}
+          {booking.inspoUrl && (
+            <div>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-brand/45">
+                Inspo
+              </p>
+              <a
+                href={booking.inspoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-3 rounded-xl border border-brand/10 bg-white p-2"
+              >
+                {/\.(mp4|mov|webm)(\?|$)/i.test(booking.inspoUrl) ? (
+                  <span className="flex h-16 w-16 items-center justify-center rounded-lg bg-lilac text-xs font-semibold text-accent">
+                    Video
+                  </span>
+                ) : (
+                  <img
+                    src={booking.inspoUrl}
+                    alt="Inspo"
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                )}
+                <span className="text-sm font-semibold text-accent">Open inspo →</span>
+              </a>
+            </div>
           )}
           {(isAwaitingDeposit || isConfirmed) && (
             <Row
@@ -169,7 +241,7 @@ export function Status() {
               className="btn-secondary w-full"
               onClick={() => void clientWalkAway(booking.id)}
             >
-              Walk away
+              {isCustom ? 'Decline quote' : 'Walk away'}
             </button>
           </div>
         )}

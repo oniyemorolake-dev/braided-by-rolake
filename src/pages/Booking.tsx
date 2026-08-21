@@ -24,6 +24,7 @@ import {
   getLengthOption,
   getMobileZone,
   getServiceById,
+  isCustomQuoteService,
   type Booking,
   type BraidSizeId,
   type LengthId,
@@ -55,6 +56,7 @@ export function Booking() {
     bookings,
     createListedBooking,
     createOffer,
+    createQuoteRequest,
     clientAcceptCounter,
     clientWalkAway,
   } = useBookings()
@@ -90,6 +92,7 @@ export function Booking() {
   const [result, setResult] = useState<Booking | null>(null)
 
   const service = serviceId ? getServiceById(serviceId) : undefined
+  const isQuote = isCustomQuoteService(service)
 
   const activeMobileZone = mobileService && mobileZoneId ? mobileZoneId : undefined
 
@@ -142,8 +145,14 @@ export function Booking() {
     setMobileService(false)
     setMobileZoneId('')
     setMobileAddress('')
+    const next = getServiceById(id)
+    if (isCustomQuoteService(next)) {
+      setMode('listed')
+    }
     setStep('options')
-    navigate(`/book?service=${id}&mode=${mode}`, { replace: true })
+    navigate(`/book?service=${id}&mode=${isCustomQuoteService(next) ? 'listed' : mode}`, {
+      replace: true,
+    })
   }
 
   function toggleAddon(id: string) {
@@ -218,7 +227,25 @@ export function Booking() {
       }
 
       let booking: Booking
-      if (mode === 'listed') {
+      if (isQuote) {
+        if (!inspoUrl) {
+          setError('Please upload an inspo photo or video for a custom quote.')
+          setSubmitting(false)
+          setInspoUploading(false)
+          return
+        }
+        if (!note.trim()) {
+          setError('Please describe the custom style or special design you want.')
+          setSubmitting(false)
+          setInspoUploading(false)
+          return
+        }
+        booking = await createQuoteRequest({
+          ...options,
+          inspoUrl,
+          note: note.trim(),
+        })
+      } else if (mode === 'listed') {
         booking = await createListedBooking(options)
       } else {
         const amount = Number(offerAmount)
@@ -317,29 +344,59 @@ export function Booking() {
         })}
       </ol>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-lilac/80 p-1">
-        <button
-          type="button"
-          onClick={() => setMode('listed')}
-          className={`rounded-xl py-2.5 text-sm font-semibold transition ${
-            mode === 'listed' ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
-          }`}
-        >
-          Listed price
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('offer')}
-          className={`rounded-xl py-2.5 text-sm font-semibold transition ${
-            mode === 'offer' ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
-          }`}
-        >
-          Make an offer
-        </button>
-      </div>
+      {!isQuote && (
+        <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-lilac/80 p-1">
+          <button
+            type="button"
+            onClick={() => setMode('listed')}
+            className={`rounded-xl py-2.5 text-sm font-semibold transition ${
+              mode === 'listed' ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
+            }`}
+          >
+            Listed price
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('offer')}
+            className={`rounded-xl py-2.5 text-sm font-semibold transition ${
+              mode === 'offer' ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
+            }`}
+          >
+            Make an offer
+          </button>
+        </div>
+      )}
+      {isQuote && (
+        <div className="mt-6 rounded-2xl bg-lilac/80 px-4 py-3 text-sm text-brand/70">
+          <p className="font-semibold text-brand">Custom quote request</p>
+          <p className="mt-1">
+            Price on request — upload inspo, describe your look, and I&apos;ll send a quote for this
+            time slot.
+          </p>
+        </div>
+      )}
 
       {step === 'service' && (
         <div className="mt-6 space-y-6">
+          <button
+            type="button"
+            onClick={() => selectService('custom')}
+            className="card-soft flex w-full items-start gap-3 border-accent/30 bg-gradient-to-br from-lilac to-white p-4 text-left transition hover:border-accent/50"
+          >
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-xl font-semibold text-accent">
+              ✦
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-brand">
+                Custom style or special design — request a quote
+              </span>
+              <span className="mt-1 block text-xs text-brand/60">
+                Price on request · upload inspo · I&apos;ll quote you back
+              </span>
+            </span>
+            <span className="text-accent">→</span>
+          </button>
+
           <div>
             <label className="mb-1.5 block text-sm font-medium text-brand" htmlFor="book-service-search">
               Search styles
@@ -366,7 +423,9 @@ export function Booking() {
           <div>
             <p className="mb-3 text-sm font-medium text-brand">Adult styles</p>
             <div className="space-y-3">
-              {adultServices.map((s) => (
+              {adultServices
+                .filter((s) => !isCustomQuoteService(s))
+                .map((s) => (
                 <button
                   key={s.id}
                   type="button"
@@ -484,7 +543,9 @@ export function Booking() {
             />
             <div className="flex-1">
               <p className="font-semibold text-brand">{service.name}</p>
-              <p className="text-xs text-brand/55">Base from {formatPrice(service.price)}</p>
+              <p className="text-xs text-brand/55">
+                {isQuote ? 'Price on request' : `Base from ${formatPrice(service.price)}`}
+              </p>
             </div>
             <button
               type="button"
@@ -495,7 +556,7 @@ export function Booking() {
             </button>
           </div>
 
-          {service.hasSizes !== false && (
+          {service.hasSizes !== false && !isQuote && (
             <div>
               <label className="mb-2 block text-sm font-medium text-brand">Size</label>
               <p className="mb-2 text-xs text-brand/55">
@@ -529,7 +590,8 @@ export function Booking() {
             </div>
           )}
 
-          {service.category !== 'care' &&
+          {!isQuote &&
+            service.category !== 'care' &&
             service.id !== 'kids-take-out' &&
             service.id !== 'kids-detangle' && (
             <>
@@ -597,6 +659,13 @@ export function Booking() {
             </div>
           </div>
             </>
+          )}
+
+          {isQuote && (
+            <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
+              No listed price for custom work — choose a preferred time, then upload inspo and
+              describe your design on the next steps. I&apos;ll send a quote before any deposit.
+            </p>
           )}
 
           {(service.category === 'care' ||
@@ -696,20 +765,24 @@ export function Booking() {
 
           <div className="rounded-2xl bg-lilac/70 px-4 py-3 text-sm">
             <div className="flex justify-between font-semibold text-brand">
-              <span>Estimated total</span>
-              <span className="text-accent">{formatPrice(total)}</span>
+              <span>{isQuote ? 'Pricing' : 'Estimated total'}</span>
+              <span className="text-accent">
+                {isQuote ? 'Price on request' : formatPrice(total)}
+              </span>
             </div>
-            {mobileService && mobileZoneId && (
+            {!isQuote && mobileService && mobileZoneId && (
               <p className="mt-1 text-xs text-brand/60">
                 Includes {formatPrice(getMobileZone(mobileZoneId)!.price)} travel (
                 {getMobileZone(mobileZoneId)!.label}) for Uber/Lyft both ways
               </p>
             )}
             <p className="mt-1 text-xs text-brand/60">
-              About {formatDuration(durationHours)} · {formatPrice(CONFIG.depositAmount)} deposit
-              due to confirm
+              About {formatDuration(durationHours)}
+              {!isQuote &&
+                ` · ${formatPrice(CONFIG.depositAmount)} deposit due to confirm`}
+              {isQuote && ' · slot held tentatively until you accept a quote'}
             </p>
-            <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>
+            {!isQuote && <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>}
           </div>
 
           <ul className="space-y-1.5 text-xs text-brand/60">
@@ -737,11 +810,13 @@ export function Booking() {
         <div className="mt-6 space-y-5">
           <div className="rounded-2xl bg-lilac/50 px-4 py-3 text-sm text-brand/80">
             <p className="font-semibold text-brand">{service.name}</p>
-            <p>
-              {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
-              {getLengthOption(lengthId)?.label}
-              {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
-            </p>
+            {!isQuote && (
+              <p>
+                {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
+                {getLengthOption(lengthId)?.label}
+                {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
+              </p>
+            )}
             <p className="mt-1 text-brand/70">
               {formatMobileLabel({
                 mobileService,
@@ -749,14 +824,16 @@ export function Booking() {
               })}
             </p>
             <p className="mt-1 font-medium text-accent">
-              {formatPrice(total)} · ~{formatDuration(durationHours)}
+              {isQuote
+                ? `Price on request · ~${formatDuration(durationHours)}`
+                : `${formatPrice(total)} · ~${formatDuration(durationHours)}`}
             </p>
             <button
               type="button"
               className="mt-1 text-xs font-semibold text-accent"
               onClick={() => setStep('options')}
             >
-              Edit size & add-ons
+              {isQuote ? 'Edit location' : 'Edit size & add-ons'}
             </button>
           </div>
 
@@ -845,11 +922,13 @@ export function Booking() {
             <p>
               {formatDateLabel(date)} · {formatSlotLabel(slot)}
             </p>
-            <p className="mt-1">
-              {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
-              {getLengthOption(lengthId)?.label}
-              {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
-            </p>
+            {!isQuote && (
+              <p className="mt-1">
+                {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
+                {getLengthOption(lengthId)?.label}
+                {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
+              </p>
+            )}
             <p className="mt-1 text-brand/70">
               {formatMobileLabel({
                 mobileService,
@@ -858,14 +937,31 @@ export function Booking() {
               {mobileService && mobileAddress.trim() && ` · ${mobileAddress.trim()}`}
             </p>
             <p className="mt-1 font-semibold text-accent">
-              {mode === 'listed'
-                ? `Total ${formatPrice(total)} · ${formatPrice(CONFIG.depositAmount)} deposit`
-                : 'You are sending an offer for review'}
+              {isQuote
+                ? 'Price on request — quote after review'
+                : mode === 'listed'
+                  ? `Total ${formatPrice(total)} · ${formatPrice(CONFIG.depositAmount)} deposit`
+                  : 'You are sending an offer for review'}
             </p>
-            <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>
+            {!isQuote && <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>}
           </div>
 
-          {mode === 'offer' && (
+          {isQuote && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-brand">
+                Describe what you want
+              </label>
+              <textarea
+                className="input-field min-h-[100px] resize-y"
+                placeholder="e.g. Half cornrows into a bun with beads, similar to my inspo…"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          {mode === 'offer' && !isQuote && (
             <>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-brand">
@@ -939,7 +1035,11 @@ export function Booking() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-brand">
               Upload your inspo (photo or video){' '}
-              <span className="font-normal text-brand/45">(optional)</span>
+              {isQuote ? (
+                <span className="font-normal text-rose-600">(required)</span>
+              ) : (
+                <span className="font-normal text-brand/45">(optional)</span>
+              )}
             </label>
             <p className="mb-2 text-xs text-brand/55">
               JPG, PNG, WebP, MP4, or MOV · max 20MB. For longer clips, send a short video or a
@@ -949,6 +1049,7 @@ export function Booking() {
               className="block w-full text-sm text-brand/70 file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
               type="file"
               accept={INSPO_ACCEPT}
+              required={isQuote}
               onChange={(e) => onInspoPicked(e.target.files?.[0] ?? null)}
             />
             {inspoFile && inspoPreview && (
@@ -1017,9 +1118,11 @@ export function Booking() {
               ? 'Uploading inspo…'
               : submitting
                 ? 'Submitting…'
-                : mode === 'listed'
-                  ? 'Confirm booking'
-                  : 'Send offer'}
+                : isQuote
+                  ? 'Request quote'
+                  : mode === 'listed'
+                    ? 'Confirm booking'
+                    : 'Send offer'}
           </button>
         </form>
       )}
@@ -1044,8 +1147,10 @@ function ConfirmationView({
   const isConfirmed = live.status === 'confirmed'
   const isAwaitingDeposit = live.status === 'awaiting_deposit'
   const isPending = live.status === 'pending'
+  const isQuoteRequested = live.status === 'quote_requested'
   const isCountered = live.status === 'countered'
   const isDeclined = live.status === 'declined'
+  const isCustom = isCustomQuoteService(service)
   const autoDeclined =
     isDeclined &&
     live.type === 'offer' &&
@@ -1061,11 +1166,15 @@ function ConfirmationView({
               ? 'You are booked!'
               : isAwaitingDeposit
                 ? 'Almost there — deposit needed'
-                : isPending
-                  ? 'Offer sent'
-                  : isCountered
-                    ? 'Counter offer'
-                    : 'Offer update'}
+                : isQuoteRequested
+                  ? 'Quote requested'
+                  : isPending
+                    ? 'Offer sent'
+                    : isCountered
+                      ? isCustom
+                        ? 'Your quote'
+                        : 'Counter offer'
+                      : 'Offer update'}
           </h1>
           <StatusBadge status={live.status} />
         </div>
@@ -1077,16 +1186,22 @@ function ConfirmationView({
               : 'Deposit received — your appointment is confirmed. See prep tips below.')}
           {isAwaitingDeposit &&
             `A ${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} deposit is required to secure your appointment, sent by e-Transfer to ${CONFIG.depositEmail}. Your booking is only confirmed once the deposit is received. The remaining balance is paid in person.`}
+          {isQuoteRequested &&
+            'Thanks! Your custom request is in and this time slot is held tentatively. I’ll review your inspo and send a quote — check back here or watch your email.'}
           {isPending &&
             'Thanks! Your offer is pending review and this time slot is held for you. Once accepted, you’ll send the deposit to finalize.'}
           {isCountered &&
+            isCustom &&
+            `I've quoted ${formatPrice(live.counterAmount!)}. Accept to continue with the deposit, or decline to free the slot.`}
+          {isCountered &&
+            !isCustom &&
             `I've suggested $${live.counterAmount}. Accept to continue, or walk away to free the slot.`}
           {isDeclined &&
             autoDeclined &&
             `Your offer was below the minimum of ${formatPrice(service!.minOffer!)} for this style, so it was declined automatically and the slot is open again.`}
           {isDeclined &&
             !autoDeclined &&
-            'This offer was declined and the time slot has been released. You are welcome to book again at the listed price or with a new offer.'}
+            'This request was declined and the time slot has been released. You are welcome to book again.'}
         </p>
 
         {isAwaitingDeposit && (
@@ -1096,11 +1211,15 @@ function ConfirmationView({
         <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
           {live.size && <Row label="Size" value={formatSizeLabel(live.size)} />}
-          <Row
-            label="Length"
-            value={getLengthOption(live.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
-          />
-          <Row label="Add-ons" value={formatAddonsLabel(live.addonIds)} />
+          {!isCustom && (
+            <>
+              <Row
+                label="Length"
+                value={getLengthOption(live.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
+              />
+              <Row label="Add-ons" value={formatAddonsLabel(live.addonIds)} />
+            </>
+          )}
           <Row label="Location" value={formatMobileLabel(live)} />
           {live.mobileService && live.mobileAddress && (
             <Row label="Mobile address" value={live.mobileAddress} />
@@ -1116,13 +1235,51 @@ function ConfirmationView({
           <Row
             label="Amount"
             value={
-              live.type === 'offer' && !isConfirmed && !isAwaitingDeposit
-                ? `Offer ${formatPrice(live.offerAmount ?? live.price)}`
-                : formatPrice(live.price)
+              isQuoteRequested
+                ? 'Price on request'
+                : isCountered && live.counterAmount != null
+                  ? formatPrice(live.counterAmount)
+                  : live.type === 'offer' && !isConfirmed && !isAwaitingDeposit
+                    ? `Offer ${formatPrice(live.offerAmount ?? live.price)}`
+                    : formatPrice(live.price)
             }
           />
-          {isCountered && live.counterAmount != null && (
+          {isCountered && live.counterAmount != null && !isCustom && (
             <Row label="Counter" value={formatPrice(live.counterAmount)} />
+          )}
+          {live.note && (
+            <div className="rounded-xl bg-lilac/50 px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                {isCustom ? 'Your request' : 'Note'}
+              </p>
+              <p className="mt-1 text-brand">{live.note}</p>
+            </div>
+          )}
+          {live.inspoUrl && (
+            <div>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-brand/45">
+                Your inspo
+              </p>
+              <a
+                href={live.inspoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-3 rounded-xl border border-brand/10 bg-white p-2 transition hover:border-accent/40"
+              >
+                {/\.(mp4|mov|webm)(\?|$)/i.test(live.inspoUrl) ? (
+                  <span className="flex h-16 w-16 items-center justify-center rounded-lg bg-lilac text-xs font-semibold text-accent">
+                    Video
+                  </span>
+                ) : (
+                  <img
+                    src={live.inspoUrl}
+                    alt="Inspo"
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                )}
+                <span className="text-sm font-semibold text-accent">Open inspo →</span>
+              </a>
+            </div>
           )}
           {(isAwaitingDeposit || isConfirmed) && (
             <Row
@@ -1199,14 +1356,14 @@ function ConfirmationView({
               Accept {formatPrice(live.counterAmount!)} & continue
             </button>
             <button type="button" className="btn-secondary w-full" onClick={onWalkAway}>
-              Walk away
+              {isCustom ? 'Decline quote' : 'Walk away'}
             </button>
           </div>
         )}
 
         <p className="text-xs text-brand/45">
           Reference: <span className="font-mono">{live.id}</span>
-          {(isPending || isAwaitingDeposit || isConfirmed) && (
+          {(isPending || isQuoteRequested || isCountered || isAwaitingDeposit || isConfirmed) && (
             <>
               {' '}
               ·{' '}

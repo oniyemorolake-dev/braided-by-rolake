@@ -28,28 +28,42 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
 
   const deposit = booking.depositAmount ?? CONFIG.depositAmount
   const subject =
-    booking.type === 'offer' && booking.status === 'pending'
-      ? `New offer — ${service?.name ?? 'Service'} from ${booking.clientName}`
-      : booking.status === 'awaiting_deposit'
-        ? `Awaiting deposit — ${service?.name ?? 'Service'} for ${booking.clientName}`
-        : booking.status === 'confirmed'
-          ? `Deposit received — ${service?.name ?? 'Service'} for ${booking.clientName}`
-          : `New booking — ${service?.name ?? 'Service'} for ${booking.clientName}`
+    booking.status === 'quote_requested'
+      ? `Custom quote request — ${service?.name ?? 'Custom'} from ${booking.clientName}`
+      : booking.status === 'countered'
+        ? `Quote sent — $${booking.counterAmount} for ${booking.clientName}`
+        : booking.type === 'offer' && booking.status === 'pending'
+          ? `New offer — ${service?.name ?? 'Service'} from ${booking.clientName}`
+          : booking.status === 'awaiting_deposit'
+            ? `Awaiting deposit — ${service?.name ?? 'Service'} for ${booking.clientName}`
+            : booking.status === 'confirmed'
+              ? `Deposit received — ${service?.name ?? 'Service'} for ${booking.clientName}`
+              : `New booking — ${service?.name ?? 'Service'} for ${booking.clientName}`
 
   const amount =
-    booking.type === 'offer'
-      ? booking.offerAmount ?? booking.price
-      : booking.price
+    booking.status === 'countered' && booking.counterAmount != null
+      ? booking.counterAmount
+      : booking.status === 'quote_requested'
+        ? 0
+        : booking.type === 'offer'
+          ? booking.offerAmount ?? booking.price
+          : booking.price
 
   const prepBlock = PREP_INSTRUCTIONS.map((line, i) => `${i + 1}. ${line}`).join('\n')
+
+  const priceLine =
+    booking.status === 'quote_requested'
+      ? 'Price: on request (awaiting your quote)'
+      : `Price: $${amount}`
 
   const message = [
     `Status: ${booking.status}`,
     `Service: ${service?.name ?? booking.serviceId}`,
     `When: ${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`,
     `Client: ${booking.clientName} · ${booking.phone} · ${booking.email}`,
-    `Price: $${amount}`,
+    priceLine,
     '',
+    `CUSTOM / NOTE: ${booking.note || '(none)'}`,
     `INSPO: ${booking.inspoUrl || '(none uploaded)'}`,
     `ACCOMMODATIONS / ALLERGIES: ${booking.notesAccommodations || '(none noted)'}`,
     '',
@@ -82,7 +96,8 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     client_name: booking.clientName,
     phone: booking.phone,
     email: booking.email,
-    price_or_offer: `$${amount}`,
+    price_or_offer:
+      booking.status === 'quote_requested' ? 'Price on request' : `$${amount}`,
     deposit_required: `$${deposit}`,
     deposit_email: CONFIG.depositEmail,
     deposit_instructions: CONFIG.depositInstructions,
@@ -117,6 +132,90 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     console.error('[Web3Forms]', message)
     return { ok: false, error: message }
   }
+}
+
+/**
+ * Notify the client that a custom quote (or counter) is ready.
+ * Web3Forms delivers to the form owner; include client email + status link so
+ * the quote can be forwarded / autoresponded, and the status page is the source of truth.
+ */
+export async function notifyClientOfQuote(
+  booking: Booking,
+): Promise<{ ok: boolean; error?: string }> {
+  const key = CONFIG.web3formsAccessKey
+  if (!key || key.includes('PASTE_YOUR')) {
+    console.warn('[Web3Forms] Access key not set — skipping client quote email.')
+    return { ok: false, error: 'Access key not configured' }
+  }
+
+  if (booking.counterAmount == null) {
+    return { ok: false, error: 'No quote amount' }
+  }
+
+  const service = getServiceById(booking.serviceId)
+  const origin =
+    typeof window !== 'undefined' ? window.location.origin : 'https://braidedbyrolake.ca'
+  const statusUrl = `${origin}/status/${booking.id}`
+  const amount = formatPriceLike(booking.counterAmount)
+
+  const subject = `Your quote from Braided by Rolake — ${amount}`
+  const message = [
+    `Hi ${booking.clientName},`,
+    '',
+    `Rolake has sent a quote for your custom style request.`,
+    '',
+    `Service: ${service?.name ?? booking.serviceId}`,
+    `When: ${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`,
+    `Quoted price: ${amount}`,
+    booking.note ? `Your request: ${booking.note}` : '',
+    '',
+    `Accept or decline your quote here:`,
+    statusUrl,
+    '',
+    `If you accept, you'll send a $${booking.depositAmount ?? CONFIG.depositAmount} e-Transfer deposit to secure the appointment.`,
+    '',
+    '— Braided by Rolake',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const payload = {
+    access_key: key,
+    subject,
+    from_name: 'Braided by Rolake',
+    email: booking.email,
+    name: booking.clientName,
+    message,
+    quoted_price: amount,
+    status_url: statusUrl,
+    booking_id: booking.id,
+    // Ask Web3Forms to CC the client when supported by the account
+    ccemail: booking.email,
+  }
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    const data = (await res.json()) as { success?: boolean; message?: string }
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message || 'Email send failed' }
+    }
+    return { ok: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Network error'
+    console.error('[Web3Forms]', message)
+    return { ok: false, error: message }
+  }
+}
+
+function formatPriceLike(amount: number): string {
+  return `$${amount}`
 }
 
 /**

@@ -11,13 +11,14 @@ import {
   CONFIG,
   calculateBookingTotal,
   getServiceById,
+  isCustomQuoteService,
   type Booking,
   type BookingStatus,
   type BraidSizeId,
   type LengthId,
   type MobileZoneId,
 } from '../data'
-import { notifyOwner } from '../lib/notifications'
+import { notifyOwner, notifyClientOfQuote } from '../lib/notifications'
 import { isSupabaseConfigured } from '../lib/supabase'
 import {
   clearAllBookingsRemote,
@@ -49,6 +50,11 @@ export interface CreateOfferInput extends CreateListedInput {
   note?: string
 }
 
+export interface CreateQuoteInput extends CreateListedInput {
+  /** Description of the custom style / special design */
+  note: string
+}
+
 interface BookingContextValue {
   bookings: Booking[]
   loading: boolean
@@ -56,6 +62,7 @@ interface BookingContextValue {
   refreshBookings: () => Promise<void>
   createListedBooking: (input: CreateListedInput) => Promise<Booking>
   createOffer: (input: CreateOfferInput) => Promise<Booking>
+  createQuoteRequest: (input: CreateQuoteInput) => Promise<Booking>
   acceptOffer: (id: string) => Promise<void>
   declineOffer: (id: string) => Promise<void>
   counterOffer: (id: string, amount: number) => Promise<void>
@@ -234,9 +241,55 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     return saved
   }, [])
 
+  const createQuoteRequest = useCallback(async (input: CreateQuoteInput) => {
+    const service = getServiceById(input.serviceId)
+    if (!service || !isCustomQuoteService(service)) {
+      throw new Error('Custom quote requires the custom style service.')
+    }
+    if (!input.inspoUrl?.trim()) {
+      throw new Error('An inspo photo or video is required for custom quotes.')
+    }
+    if (!input.note?.trim()) {
+      throw new Error('Please describe the style you want.')
+    }
+
+    const mobileService = Boolean(input.mobileService && input.mobileZoneId)
+    const booking: Booking = {
+      id: generateId(),
+      serviceId: input.serviceId,
+      date: input.date,
+      slot: input.slot,
+      clientName: input.clientName.trim(),
+      phone: input.phone.trim(),
+      email: input.email.trim(),
+      price: 0,
+      type: 'offer',
+      status: 'quote_requested',
+      note: input.note.trim(),
+      lengthId: input.lengthId ?? 'shoulder',
+      addonIds: input.addonIds ?? [],
+      mobileService,
+      mobileZoneId: mobileService ? input.mobileZoneId : undefined,
+      mobileAddress: mobileService ? input.mobileAddress?.trim() || undefined : undefined,
+      depositAmount: CONFIG.depositAmount,
+      depositPaid: false,
+      inspoUrl: input.inspoUrl,
+      notesAccommodations: input.notesAccommodations?.trim() || undefined,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    }
+
+    const saved = await insertBooking(booking)
+    setBookings((prev) => [saved, ...prev.filter((b) => b.id !== saved.id)])
+    void notifyOwner(saved)
+    return saved
+  }, [])
+
   const acceptOffer = useCallback(async (id: string) => {
     const current = (await loadBookings()).find((b) => b.id === id)
     if (!current) return
+    // Custom quotes must be priced via counter / Send quote first
+    if (current.status === 'quote_requested') return
     const finalPrice = current.counterAmount ?? current.offerAmount ?? current.price
     const saved = await updateBookingRemote(id, {
       status: 'awaiting_deposit' as BookingStatus,
@@ -257,6 +310,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       counterAmount: amount,
     })
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+    void notifyClientOfQuote(saved)
+    void notifyOwner(saved)
   }, [])
 
   const clientAcceptCounter = useCallback(async (id: string) => {
@@ -307,6 +362,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       refreshBookings,
       createListedBooking,
       createOffer,
+      createQuoteRequest,
       acceptOffer,
       declineOffer,
       counterOffer,
@@ -323,6 +379,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       refreshBookings,
       createListedBooking,
       createOffer,
+      createQuoteRequest,
       acceptOffer,
       declineOffer,
       counterOffer,

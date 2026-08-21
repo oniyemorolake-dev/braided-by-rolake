@@ -9,6 +9,7 @@ export type BookingStatus =
   | 'confirmed'
   | 'awaiting_deposit'
   | 'pending'
+  | 'quote_requested'
   | 'countered'
   | 'declined'
 
@@ -32,6 +33,8 @@ export interface Service {
   hasSizes?: boolean
   /** Adult styles vs kids (ages 4?11) vs hair care extras */
   category?: 'adult' | 'kids' | 'care'
+  /** Custom / special design ? no listed price; client requests a quote */
+  quoteOnly?: boolean
 }
 
 export interface SizeOption {
@@ -366,6 +369,17 @@ export const MOBILE_ZONES: MobileZone[] = [
 ]
 
 export const SERVICES: Service[] = [
+  {
+    id: 'custom',
+    name: 'Custom Style / Special Design',
+    price: 0,
+    durationHours: 4,
+    description:
+      'Have a unique look, mixed style, or special design in mind? Request a quote ? upload your inspo and describe what you want. I\'ll review and send a price.',
+    hasSizes: false,
+    quoteOnly: true,
+    featured: true,
+  },
   {
     id: 'knotless',
     name: 'Knotless Braids',
@@ -887,6 +901,10 @@ export function isCareService(service: Service): boolean {
   )
 }
 
+export function isCustomQuoteService(service: Service | undefined | null): boolean {
+  return Boolean(service?.quoteOnly)
+}
+
 export function calculateBookingTotal(
   service: Service,
   sizeId: BraidSizeId = 'medium',
@@ -894,6 +912,7 @@ export function calculateBookingTotal(
   addonIds: string[] = [],
   mobileZoneId?: MobileZoneId | null,
 ): number {
+  if (isCustomQuoteService(service)) return 0
   const size = getSizeOption(sizeId)
   const length = getLengthOption(lengthId)
   const care = isCareService(service)
@@ -938,6 +957,12 @@ export function getBookingDurationHours(booking: Booking): number {
 
 export function formatPrice(amount: number): string {
   return `$${amount}`
+}
+
+/** Listed price label ? custom quotes show "Price on request" */
+export function formatServicePriceLabel(service: Service): string {
+  if (isCustomQuoteService(service)) return 'Price on request'
+  return `from ${formatPrice(service.price)}`
 }
 
 export function formatPriceAdjust(amount: number): string {

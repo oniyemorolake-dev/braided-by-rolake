@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import {
   formatDuration,
   formatPrice,
+  formatServicePriceLabel,
+  isCustomQuoteService,
   type Service,
 } from '../data'
 import { PhotoSlot, servicePhotoPath } from './PhotoSlot'
@@ -13,6 +15,7 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, compact }: ServiceCardProps) {
   const src = service.image ?? servicePhotoPath(service.id)
+  const isQuote = isCustomQuoteService(service)
 
   return (
     <article className="card-soft flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
@@ -28,13 +31,26 @@ export function ServiceCard({ service, compact }: ServiceCardProps) {
             {service.name}
           </h3>
           <p className="shrink-0 text-right text-lg font-semibold text-accent">
-            from {formatPrice(service.price)}
-            <span className="mt-0.5 block text-[10px] font-medium text-brand/45">before tax</span>
+            {isQuote ? (
+              <>
+                Price on request
+                <span className="mt-0.5 block text-[10px] font-medium text-brand/45">
+                  custom quote
+                </span>
+              </>
+            ) : (
+              <>
+                {formatServicePriceLabel(service)}
+                <span className="mt-0.5 block text-[10px] font-medium text-brand/45">
+                  before tax
+                </span>
+              </>
+            )}
           </p>
         </div>
         <p className="mt-1 text-sm text-brand/55">
           ~{formatDuration(service.durationHours)}
-          {service.hasSizes !== false && (
+          {!isQuote && service.hasSizes !== false && (
             <span className="ml-2">· Small–Large</span>
           )}
         </p>
@@ -44,18 +60,29 @@ export function ServiceCard({ service, compact }: ServiceCardProps) {
           </p>
         )}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Link
-            to={`/book?service=${service.id}&mode=listed`}
-            className="btn-primary flex-1 !px-3 !py-2.5 text-center text-sm"
-          >
-            Book from {formatPrice(service.price)}
-          </Link>
-          <Link
-            to={`/book?service=${service.id}&mode=offer`}
-            className="btn-secondary flex-1 !px-3 !py-2.5 text-center text-sm"
-          >
-            Make an offer
-          </Link>
+          {isQuote ? (
+            <Link
+              to={`/book?service=${service.id}`}
+              className="btn-primary flex-1 !px-3 !py-2.5 text-center text-sm"
+            >
+              Request a quote
+            </Link>
+          ) : (
+            <>
+              <Link
+                to={`/book?service=${service.id}&mode=listed`}
+                className="btn-primary flex-1 !px-3 !py-2.5 text-center text-sm"
+              >
+                Book from {formatPrice(service.price)}
+              </Link>
+              <Link
+                to={`/book?service=${service.id}&mode=offer`}
+                className="btn-secondary flex-1 !px-3 !py-2.5 text-center text-sm"
+              >
+                Make an offer
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </article>

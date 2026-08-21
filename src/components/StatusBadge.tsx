@@ -16,6 +16,10 @@ const styles: Record<
     label: 'Pending',
     className: 'bg-amber-100 text-amber-900',
   },
+  quote_requested: {
+    label: 'Quote requested',
+    className: 'bg-fuchsia-100 text-fuchsia-900',
+  },
   countered: {
     label: 'Countered',
     className: 'bg-sky-100 text-sky-900',

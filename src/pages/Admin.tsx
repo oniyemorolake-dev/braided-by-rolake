@@ -103,7 +103,12 @@ export function Admin() {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     if (tab === 'pending') {
-      return sorted.filter((b) => b.status === 'pending' || b.status === 'countered')
+      return sorted.filter(
+        (b) =>
+          b.status === 'pending' ||
+          b.status === 'quote_requested' ||
+          b.status === 'countered',
+      )
     }
     if (tab === 'awaiting') {
       return sorted.filter((b) => b.status === 'awaiting_deposit')
@@ -292,7 +297,7 @@ export function Admin() {
       <div className="mt-6 flex flex-wrap gap-1 rounded-2xl bg-lilac/70 p-1">
         {(
           [
-            ['pending', 'Offers'],
+            ['pending', 'Offers & quotes'],
             ['awaiting', 'Awaiting deposit'],
             ['confirmed', 'Confirmed'],
             ['all', 'All'],
@@ -341,7 +346,7 @@ export function Admin() {
             <p className="font-display text-2xl text-brand">Nothing here yet</p>
             <p className="mt-2 text-sm text-brand/60">
               {tab === 'pending'
-                ? 'New client offers will show up here for Accept / Counter / Decline.'
+                ? 'New offers and custom quote requests show up here.'
                 : tab === 'awaiting'
                   ? 'Bookings waiting on deposit appear here — tap Deposit received when paid.'
                   : 'Confirmed appointments will appear as deposits are marked received.'}
@@ -350,6 +355,7 @@ export function Admin() {
         ) : (
           filtered.map((b) => {
             const service = getServiceById(b.serviceId)
+            const isQuoteRequest = b.status === 'quote_requested'
             const isOfferActionable = b.status === 'pending'
             const needsDepositConfirm = b.status === 'awaiting_deposit'
             return (
@@ -358,6 +364,9 @@ export function Admin() {
                   <div>
                     <p className="font-display text-xl font-semibold text-brand">
                       {service?.name ?? b.serviceId}
+                      {isQuoteRequest && (
+                        <span className="ml-2 text-sm font-semibold text-accent">· Quote</span>
+                      )}
                     </p>
                     <p className="text-sm text-brand/60">
                       {formatDateLabel(b.date)} · {formatSlotLabel(b.slot)}
@@ -385,11 +394,17 @@ export function Admin() {
                   </div>
                   <div>
                     <span className="text-brand/45">
-                      {b.type === 'offer' ? 'Offer · ' : 'Price · '}
+                      {isQuoteRequest
+                        ? 'Price · '
+                        : b.type === 'offer'
+                          ? 'Offer · '
+                          : 'Price · '}
                     </span>
-                    {formatPrice(b.offerAmount ?? b.price)}
+                    {isQuoteRequest
+                      ? 'On request'
+                      : formatPrice(b.offerAmount ?? b.price)}
                     {b.counterAmount != null && (
-                      <span> → counter {formatPrice(b.counterAmount)}</span>
+                      <span> → quote {formatPrice(b.counterAmount)}</span>
                     )}
                   </div>
                   {b.size && (
@@ -421,9 +436,11 @@ export function Admin() {
                         : ' · unpaid'}
                   </div>
                   {b.note && (
-                    <div className="sm:col-span-2">
-                      <span className="text-brand/45">Note · </span>
-                      {b.note}
+                    <div className="sm:col-span-2 rounded-xl bg-lilac/50 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                        {isQuoteRequest ? 'Custom request' : 'Note'}
+                      </p>
+                      <p className="mt-1 text-brand">{b.note}</p>
                     </div>
                   )}
                   {b.notesAccommodations && (
@@ -475,6 +492,45 @@ export function Admin() {
                     <p className="mt-2 text-xs text-brand/50">
                       Marks this booking Confirmed and notifies you by email.
                     </p>
+                  </div>
+                )}
+
+                {isQuoteRequest && (
+                  <div className="mt-4 space-y-2 border-t border-brand/10 pt-4">
+                    <p className="text-xs text-brand/55">
+                      Enter your quoted price — this becomes the counter the client can Accept or
+                      Decline.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        className="input-field !py-2"
+                        type="number"
+                        min={1}
+                        placeholder="Quoted price"
+                        value={counterDrafts[b.id] ?? ''}
+                        onChange={(e) =>
+                          setCounterDrafts((d) => ({ ...d, [b.id]: e.target.value }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="btn-primary shrink-0 !px-4 !py-2 text-sm"
+                        onClick={() => {
+                          const n = Number(counterDrafts[b.id])
+                          if (!Number.isFinite(n) || n <= 0) return
+                          void counterOffer(b.id, n)
+                        }}
+                      >
+                        Send quote
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary !px-4 !py-2 text-sm"
+                      onClick={() => void declineOffer(b.id)}
+                    >
+                      Decline
+                    </button>
                   </div>
                 )}
 
