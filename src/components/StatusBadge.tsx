@@ -28,6 +28,10 @@ const styles: Record<
     label: 'Declined',
     className: 'bg-rose-100 text-rose-800',
   },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'bg-rose-100 text-rose-800',
+  },
 }
 
 export function StatusBadge({ status }: { status: BookingStatus }) {

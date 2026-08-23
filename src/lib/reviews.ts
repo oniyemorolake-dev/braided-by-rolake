@@ -87,14 +87,15 @@ export async function submitReview(input: NewReviewInput): Promise<Review> {
     throw new Error('Name and review text are required.')
   }
 
-  const { data, error } = await supabase.from('reviews').insert(row).select('*').single()
+  // Pending rows are not SELECT-able by public RLS — insert without returning
+  const { error } = await supabase.from('reviews').insert(row)
 
   if (error) {
     console.error('[reviews] insert failed', error.message)
     throw new Error(error.message)
   }
 
-  return rowToReview(data as ReviewRow)
+  return rowToReview(row)
 }
 
 /** Admin: list all reviews (password-gated RPC). */

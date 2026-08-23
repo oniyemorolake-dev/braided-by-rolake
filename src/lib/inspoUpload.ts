@@ -45,7 +45,7 @@ export function isInspoVideo(url: string): boolean {
 }
 
 /**
- * Upload inspo to the public `inspo` bucket.
+ * Upload inspo to the `inspo` bucket (public URL by exact path; not listable).
  * Paths use random IDs so files can't be enumerated by guessing.
  */
 export async function uploadInspoFile(file: File): Promise<string> {

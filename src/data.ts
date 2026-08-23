@@ -12,6 +12,7 @@ export type BookingStatus =
   | 'quote_requested'
   | 'countered'
   | 'declined'
+  | 'cancelled'
 
 export type BraidSizeId = 'small' | 'smedium' | 'medium' | 'large'
 export type LengthId = 'shoulder' | 'midback' | 'waist' | 'butt'

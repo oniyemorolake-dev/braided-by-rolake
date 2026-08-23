@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CONFIG,
   formatAddonsLabel,
@@ -11,6 +11,7 @@ import {
   getLengthOption,
   getServiceById,
   isCustomQuoteService,
+  type Booking,
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { StatusBadge } from '../components/StatusBadge'
@@ -19,12 +20,48 @@ import {
   DepositInstructions,
   PrepInstructionsBlock,
 } from '../components/BookingNotices'
+import { getBookingById } from '../lib/storage'
 
 export function Status() {
   const { id } = useParams<{ id: string }>()
-  const { getBooking, clientAcceptCounter, clientWalkAway, markDepositPaid } = useBookings()
-  const booking = id ? getBooking(id) : undefined
+  const { clientAcceptCounter, clientWalkAway, markDepositPaid } = useBookings()
+  const [booking, setBooking] = useState<Booking | null>(null)
+  const [loading, setLoading] = useState(true)
   const [ack, setAck] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!id) {
+        setBooking(null)
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      const row = await getBookingById(id)
+      if (!cancelled) {
+        setBooking(row)
+        setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  async function refresh() {
+    if (!id) return
+    const row = await getBookingById(id)
+    setBooking(row)
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <p className="text-sm text-brand/60">Loading booking…</p>
+      </div>
+    )
+  }
 
   if (!booking) {
     return (
@@ -47,7 +84,7 @@ export function Status() {
   const isQuoteRequested = booking.status === 'quote_requested'
   const isCountered = booking.status === 'countered'
   const isPending = booking.status === 'pending'
-  const isDeclined = booking.status === 'declined'
+  const isDeclined = booking.status === 'declined' || booking.status === 'cancelled'
   const deposit = booking.depositAmount ?? CONFIG.depositAmount
 
   return (
@@ -116,15 +153,19 @@ export function Status() {
             value={`${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`}
           />
           <Row
-            label={isQuoteRequested ? 'Price' : booking.type === 'offer' && !isCustom ? 'Your offer' : 'Price'}
+            label={
+              isQuoteRequested
+                ? 'Price'
+                : booking.type === 'offer' && !isCustom
+                  ? 'Your offer'
+                  : 'Price'
+            }
             value={
               isQuoteRequested
                 ? 'Price on request'
                 : isCountered || isAwaitingDeposit || isConfirmed
                   ? formatPrice(
-                      booking.counterAmount ??
-                        booking.offerAmount ??
-                        booking.price,
+                      booking.counterAmount ?? booking.offerAmount ?? booking.price,
                     )
                   : formatPrice(booking.offerAmount ?? booking.price)
             }
@@ -220,7 +261,9 @@ export function Status() {
               type="button"
               className="btn-secondary w-full"
               disabled={!ack}
-              onClick={() => void markDepositPaid(booking.id)}
+              onClick={() => {
+                void markDepositPaid(booking.id).then(() => refresh())
+              }}
             >
               I’ve sent the deposit
             </button>
@@ -232,14 +275,18 @@ export function Status() {
             <button
               type="button"
               className="btn-primary w-full"
-              onClick={() => void clientAcceptCounter(booking.id)}
+              onClick={() => {
+                void clientAcceptCounter(booking.id).then(() => refresh())
+              }}
             >
               Accept {formatPrice(booking.counterAmount!)} & continue
             </button>
             <button
               type="button"
               className="btn-secondary w-full"
-              onClick={() => void clientWalkAway(booking.id)}
+              onClick={() => {
+                void clientWalkAway(booking.id).then(() => refresh())
+              }}
             >
               {isCustom ? 'Decline quote' : 'Walk away'}
             </button>

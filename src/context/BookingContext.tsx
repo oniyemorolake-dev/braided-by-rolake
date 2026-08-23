@@ -40,6 +40,7 @@ import { isSupabaseConfigured } from '../lib/supabase'
 import {
   clearAllBookingsRemote,
   generateId,
+  getBookingById,
   insertBooking,
   loadBookings,
   updateBookingRemote,
@@ -346,60 +347,80 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const acceptOffer = useCallback(async (id: string) => {
-    const current = (await loadBookings()).find((b) => b.id === id)
+    const current = (await getBookingById(id)) ?? bookings.find((b) => b.id === id)
     if (!current) return
     // Custom quotes must be priced via counter / Send quote first
     if (current.status === 'quote_requested') return
     const finalPrice = current.counterAmount ?? current.offerAmount ?? current.price
-    const saved = await updateBookingRemote(id, {
-      status: 'awaiting_deposit' as BookingStatus,
-      price: finalPrice,
-    })
+    const saved = await updateBookingRemote(
+      id,
+      {
+        status: 'awaiting_deposit' as BookingStatus,
+        price: finalPrice,
+      },
+      'admin',
+    )
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyOwner(saved)
-  }, [])
+  }, [bookings])
 
   const declineOffer = useCallback(async (id: string) => {
-    const saved = await updateBookingRemote(id, { status: 'declined' })
+    const saved = await updateBookingRemote(id, { status: 'declined' }, 'admin')
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
   }, [])
 
   const counterOffer = useCallback(async (id: string, amount: number) => {
-    const saved = await updateBookingRemote(id, {
-      status: 'countered',
-      counterAmount: amount,
-    })
+    const saved = await updateBookingRemote(
+      id,
+      {
+        status: 'countered',
+        counterAmount: amount,
+      },
+      'admin',
+    )
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyClientOfQuote(saved)
     void notifyOwner(saved)
   }, [])
 
   const clientAcceptCounter = useCallback(async (id: string) => {
-    const current = (await loadBookings()).find((b) => b.id === id)
-    if (!current || current.counterAmount == null) return
-    const saved = await updateBookingRemote(id, {
-      status: 'awaiting_deposit',
-      price: current.counterAmount,
+    const saved = await updateBookingRemote(
+      id,
+      { status: 'awaiting_deposit', price: 0 },
+      'client_accept',
+    )
+    setBookings((prev) => {
+      const exists = prev.some((b) => b.id === id)
+      return exists ? prev.map((b) => (b.id === id ? saved : b)) : [saved, ...prev]
     })
-    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyOwner(saved)
   }, [])
 
   const clientWalkAway = useCallback(async (id: string) => {
-    const saved = await updateBookingRemote(id, { status: 'declined' })
-    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+    const saved = await updateBookingRemote(id, { status: 'declined' }, 'client_walk')
+    setBookings((prev) => {
+      const exists = prev.some((b) => b.id === id)
+      return exists ? prev.map((b) => (b.id === id ? saved : b)) : [saved, ...prev]
+    })
   }, [])
 
   const markDepositPaid = useCallback(async (id: string) => {
-    const saved = await updateBookingRemote(id, { depositPaid: true })
-    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+    const saved = await updateBookingRemote(id, { depositPaid: true }, 'client_deposit')
+    setBookings((prev) => {
+      const exists = prev.some((b) => b.id === id)
+      return exists ? prev.map((b) => (b.id === id ? saved : b)) : [saved, ...prev]
+    })
   }, [])
 
   const markDepositReceived = useCallback(async (id: string) => {
-    const saved = await updateBookingRemote(id, {
-      status: 'confirmed' as BookingStatus,
-      depositPaid: true,
-    })
+    const saved = await updateBookingRemote(
+      id,
+      {
+        status: 'confirmed' as BookingStatus,
+        depositPaid: true,
+      },
+      'admin',
+    )
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyOwner(saved)
 

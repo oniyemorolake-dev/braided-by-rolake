@@ -97,6 +97,11 @@ export function Admin() {
   }
 
   useEffect(() => {
+    if (!authed) return
+    void refreshBookings()
+  }, [authed, refreshBookings])
+
+  useEffect(() => {
     if (!authed || panel !== 'reviews') return
     void refreshReviews()
   }, [authed, panel])
@@ -139,6 +144,7 @@ export function Admin() {
       sessionStorage.setItem('bbr_admin', '1')
       setAuthed(true)
       setLoginError('')
+      void refreshBookings()
     } else {
       setLoginError('Incorrect password.')
     }

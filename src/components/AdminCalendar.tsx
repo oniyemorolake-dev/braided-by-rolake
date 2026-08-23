@@ -53,6 +53,11 @@ const STATUS_BLOCK: Record<
     buffer: 'bg-rose-100',
     text: 'text-rose-900',
   },
+  cancelled: {
+    bar: 'bg-rose-300',
+    buffer: 'bg-rose-100',
+    text: 'text-rose-900',
+  },
 }
 
 function toIsoDate(d: Date): string {
