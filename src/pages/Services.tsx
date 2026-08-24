@@ -32,8 +32,9 @@ export function Services() {
         <h1 className="font-display text-4xl font-semibold text-brand sm:text-5xl">Services</h1>
         <p className="mt-3 text-brand/70">
           Calgary-aligned pricing (medium / shoulder base). Choose size, length, and add-ons when you
-          book. Mobile travel available. A {formatPrice(CONFIG.depositAmount)} Interac e-Transfer
-          deposit holds your spot. {CONFIG.taxNote}
+          book. Mobile travel available. Deposit via Interac e-Transfer: {formatPrice(10)} under{' '}
+          {formatPrice(50)}, {formatPrice(15)} under {formatPrice(60)}, otherwise{' '}
+          {formatPrice(CONFIG.depositAmount)}. {CONFIG.taxNote}
         </p>
       </div>
 
@@ -181,8 +182,9 @@ export function Services() {
           ))}
         </ul>
         <p>
-          <strong className="text-brand">Deposit:</strong> e-Transfer{' '}
-          {formatPrice(CONFIG.depositAmount)} to{' '}
+          <strong className="text-brand">Deposit:</strong> e-Transfer {formatPrice(10)} (under{' '}
+          {formatPrice(50)}), {formatPrice(15)} (under {formatPrice(60)}), or{' '}
+          {formatPrice(CONFIG.depositAmount)} otherwise — send to{' '}
           <a className="text-accent hover:underline" href={`mailto:${CONFIG.depositEmail}`}>
             {CONFIG.depositEmail}
           </a>

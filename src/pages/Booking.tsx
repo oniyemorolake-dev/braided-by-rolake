@@ -25,6 +25,7 @@ import {
   formatSlotLabel,
   getAdultServices,
   getCareServices,
+  getDepositForPrice,
   getKidsServices,
   getLengthOption,
   getMobileZone,
@@ -376,8 +377,9 @@ export function Booking() {
         Book with Rolake
       </h1>
       <p className="mt-2 text-sm text-brand/65">
-        Home studio in {CONFIG.city}. A {formatPrice(CONFIG.depositAmount)} Interac e-Transfer
-        deposit is required to secure your spot — booking is confirmed once it&apos;s received
+        Home studio in {CONFIG.city}. Deposit via Interac e-Transfer: {formatPrice(10)} under{' '}
+        {formatPrice(50)}, {formatPrice(15)} under {formatPrice(60)}, otherwise{' '}
+        {formatPrice(CONFIG.depositAmount)} — booking is confirmed once it&apos;s received
         (remaining balance paid in person).
       </p>
 
@@ -845,7 +847,7 @@ export function Booking() {
             <p className="mt-1 text-xs text-brand/60">
               About {formatDuration(durationHours)}
               {!isQuote &&
-                ` · ${formatPrice(CONFIG.depositAmount)} deposit due to confirm`}
+                ` · ${formatPrice(getDepositForPrice(total))} deposit due to confirm`}
               {isQuote && ' · slot held tentatively until you accept a quote'}
             </p>
             {!isQuote && <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>}
@@ -1008,7 +1010,7 @@ export function Booking() {
                 : mode === 'listed'
                   ? `Total ${formatPrice(payableTotal)}${
                       discountOff > 0 ? ` (${formatPrice(discountOff)} off)` : ''
-                    } · ${formatPrice(CONFIG.depositAmount)} deposit`
+                    } · ${formatPrice(getDepositForPrice(payableTotal))} deposit`
                   : 'You are sending an offer for review'}
             </p>
             {!isQuote && <p className="mt-1 text-xs text-brand/50">{CONFIG.taxNote}</p>}
@@ -1253,9 +1255,12 @@ export function Booking() {
 
           <p className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
             By booking, you agree that hair will be <strong>pre-stretched</strong>, a{' '}
-            <strong>{formatPrice(CONFIG.depositAmount)} e-Transfer deposit</strong> is required to
-            secure the appointment (confirmed once received; balance paid in person), and extensions
-            are provided <strong>only on request</strong>.
+            <strong>
+              {formatPrice(getDepositForPrice(isQuote ? 0 : payableTotal || total))} e-Transfer
+              deposit
+            </strong>{' '}
+            is required to secure the appointment (confirmed once received; balance paid in person),
+            and extensions are provided <strong>only on request</strong>.
           </p>
 
           {error && (

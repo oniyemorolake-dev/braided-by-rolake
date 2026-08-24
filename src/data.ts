@@ -207,11 +207,22 @@ export const CONFIG: BusinessConfig = {
   web3formsAccessKey: '51a35843-c702-4cd1-8f50-af5d97571a74',
 }
 
+/**
+ * Deposit scales with appointment total:
+ * under $50 → $10, under $60 → $15, otherwise default ($30).
+ */
+export function getDepositForPrice(price: number): number {
+  if (!Number.isFinite(price) || price <= 0) return CONFIG.depositAmount
+  if (price < 50) return 10
+  if (price < 60) return 15
+  return CONFIG.depositAmount
+}
+
 /** Studio policies shown on Services, booking, and confirmation */
 export const POLICIES = [
   'Hair must be clean and pre-stretched before your appointment.',
   'I can provide extensions only on request - please ask when you book so we can plan ahead.',
-  'A $30 deposit via Interac e-Transfer is required to secure your appointment - booking is confirmed once the deposit is received.',
+  'A deposit via Interac e-Transfer is required to secure your appointment ($10 under $50, $15 under $60, otherwise $30) - booking is confirmed once the deposit is received.',
   'Mobile (I come to you) is available for an extra travel fee based on your location.',
   'Prices as listed - deposit by e-Transfer (no card fees). Remaining balance paid in person.',
   'No wash / shampoo services - take-outs and dry detangling only for hair-care appointments.',

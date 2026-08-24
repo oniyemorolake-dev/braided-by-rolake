@@ -16,6 +16,7 @@ import {
   REFERRAL_DISCOUNT_FRIEND,
   calculateBookingTotal,
   clampDiscountAmount,
+  getDepositForPrice,
   getServiceById,
   isCustomQuoteService,
   type Booking,
@@ -130,7 +131,7 @@ function buildPriceFields(input: CreateListedInput) {
     mobileZoneId,
     mobileAddress: mobileService ? input.mobileAddress?.trim() || undefined : undefined,
     price,
-    depositAmount: CONFIG.depositAmount,
+    depositAmount: getDepositForPrice(price),
   }
 }
 
@@ -178,7 +179,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileZoneId,
       mobileAddress,
       price: subtotal,
-      depositAmount,
     } = buildPriceFields(input)
 
     const bookingId = generateId()
@@ -234,7 +234,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       mobileService,
       mobileZoneId,
       mobileAddress,
-      depositAmount,
+      depositAmount: getDepositForPrice(price),
       depositPaid: false,
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
@@ -357,6 +357,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       {
         status: 'awaiting_deposit' as BookingStatus,
         price: finalPrice,
+        depositAmount: getDepositForPrice(finalPrice),
       },
       'admin',
     )
