@@ -35,6 +35,7 @@ import {
 import {
   notifyOwner,
   notifyClientOfQuote,
+  notifyClientBooking,
   notifyDiscountCodeEmail,
 } from '../lib/notifications'
 import { isSupabaseConfigured } from '../lib/supabase'
@@ -248,6 +249,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     const saved = await insertBooking(booking)
     setBookings((prev) => [saved, ...prev.filter((b) => b.id !== saved.id)])
     void notifyOwner(saved)
+    void notifyClientBooking(saved)
     return saved
   }, [])
 
@@ -363,6 +365,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     )
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyOwner(saved)
+    void notifyClientBooking(saved)
   }, [bookings])
 
   const declineOffer = useCallback(async (id: string) => {
@@ -395,6 +398,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       return exists ? prev.map((b) => (b.id === id ? saved : b)) : [saved, ...prev]
     })
     void notifyOwner(saved)
+    void notifyClientBooking(saved)
   }, [])
 
   const clientWalkAway = useCallback(async (id: string) => {
@@ -424,6 +428,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     )
     setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
     void notifyOwner(saved)
+    void notifyClientBooking(saved)
 
     // Loyalty + referral code after confirmed booking
     if (LOYALTY_ENABLED) {

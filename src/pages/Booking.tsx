@@ -50,6 +50,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import {
   CancelNoticeLine,
   DepositInstructions,
+  DepositSentNotice,
   PrepInstructionsBlock,
 } from '../components/BookingNotices'
 import { PhotoSlot, servicePhotoPath } from '../components/PhotoSlot'
@@ -1327,19 +1328,21 @@ function ConfirmationView({
           <h1 className="font-display text-3xl font-semibold text-brand">
             {isConfirmed
               ? 'You are booked!'
-              : isAwaitingDeposit
-                ? 'Almost there — deposit needed'
-                : isQuoteRequested
-                  ? 'Quote requested'
-                  : isPending
-                    ? 'Offer sent'
-                    : isCountered
-                      ? isCustom
-                        ? 'Your quote'
-                        : 'Counter offer'
-                      : 'Offer update'}
+              : isAwaitingDeposit && live.depositPaid
+                ? 'Deposit marked as sent'
+                : isAwaitingDeposit
+                  ? 'Almost there — deposit needed'
+                  : isQuoteRequested
+                    ? 'Quote requested'
+                    : isPending
+                      ? 'Offer sent'
+                      : isCountered
+                        ? isCustom
+                          ? 'Your quote'
+                          : 'Counter offer'
+                        : 'Offer update'}
           </h1>
-          <StatusBadge status={live.status} />
+          <StatusBadge status={live.status} depositPaid={live.depositPaid} />
         </div>
 
         <p className="text-sm leading-relaxed text-brand/70">
@@ -1348,6 +1351,10 @@ function ConfirmationView({
               ? 'Deposit received — I’ll come to you. See prep tips below.'
               : 'Deposit received — your appointment is confirmed. See prep tips below.')}
           {isAwaitingDeposit &&
+            live.depositPaid &&
+            'Thanks — we’ve noted that you sent the deposit. Your booking is confirmed once Rolake verifies the e-Transfer (usually same day). You’ll get an email when it’s confirmed, and you can check status anytime with your link.'}
+          {isAwaitingDeposit &&
+            !live.depositPaid &&
             `A ${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} deposit is required to secure your appointment, sent by e-Transfer to ${CONFIG.depositEmail}. Your booking is only confirmed once the deposit is received. The remaining balance is paid in person.`}
           {isQuoteRequested &&
             'Thanks! Your custom request is in and this time slot is held tentatively. I’ll review your inspo and send a quote — check back here or watch your email.'}
@@ -1367,7 +1374,10 @@ function ConfirmationView({
             'This request was declined and the time slot has been released. You are welcome to book again.'}
         </p>
 
-        {isAwaitingDeposit && (
+        {isAwaitingDeposit && live.depositPaid && (
+          <DepositSentNotice amount={live.depositAmount ?? CONFIG.depositAmount} />
+        )}
+        {isAwaitingDeposit && !live.depositPaid && (
           <DepositInstructions amount={live.depositAmount ?? CONFIG.depositAmount} />
         )}
 
@@ -1451,7 +1461,7 @@ function ConfirmationView({
                 isConfirmed
                   ? `${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} · received`
                   : live.depositPaid
-                    ? `${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} · marked sent`
+                    ? `${formatPrice(live.depositAmount ?? CONFIG.depositAmount)} · sent (pending verify)`
                     : formatPrice(live.depositAmount ?? CONFIG.depositAmount)
               }
             />

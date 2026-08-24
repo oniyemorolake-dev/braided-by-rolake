@@ -221,6 +221,107 @@ function formatPriceLike(amount: number): string {
   return `$${amount}`
 }
 
+function statusUrlFor(bookingId: string): string {
+  const origin =
+    typeof window !== 'undefined' ? window.location.origin : 'https://braidedbyrolake.ca'
+  return `${origin}/status/${bookingId}`
+}
+
+/**
+ * Email the client a booking receipt / confirmation via Web3Forms (CC to their address).
+ * - awaiting_deposit: “we got your request — send deposit”
+ * - confirmed: “you’re booked”
+ */
+export async function notifyClientBooking(
+  booking: Booking,
+): Promise<{ ok: boolean; error?: string }> {
+  const key = CONFIG.web3formsAccessKey
+  if (!key || key.includes('PASTE_YOUR')) {
+    return { ok: false, error: 'Access key not configured' }
+  }
+
+  const service = getServiceById(booking.serviceId)
+  const statusUrl = statusUrlFor(booking.id)
+  const deposit = booking.depositAmount ?? CONFIG.depositAmount
+  const when = `${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`
+
+  const isConfirmed = booking.status === 'confirmed'
+  const subject = isConfirmed
+    ? `You’re booked — Braided by Rolake`
+    : `Booking received — deposit needed · Braided by Rolake`
+
+  const message = isConfirmed
+    ? [
+        `Hi ${booking.clientName},`,
+        '',
+        `Your deposit was received and your appointment is confirmed!`,
+        '',
+        `Service: ${service?.name ?? booking.serviceId}`,
+        `When: ${when}`,
+        `Total: $${booking.price}`,
+        booking.mobileService
+          ? `Location: Mobile — ${booking.mobileAddress || 'address on file'}`
+          : `Location: Studio (address shared on your status page)`,
+        '',
+        `View your booking anytime:`,
+        statusUrl,
+        '',
+        formatCancelNotice(),
+        '',
+        '— Braided by Rolake',
+      ].join('\n')
+    : [
+        `Hi ${booking.clientName},`,
+        '',
+        `Thanks for booking with Braided by Rolake! Your time slot is held.`,
+        '',
+        `Service: ${service?.name ?? booking.serviceId}`,
+        `When: ${when}`,
+        `Total: $${booking.price}`,
+        `Deposit to send: $${deposit} Interac e-Transfer to ${CONFIG.depositEmail}`,
+        '',
+        `Your booking is only fully confirmed once Rolake marks the deposit received.`,
+        `Track status here:`,
+        statusUrl,
+        '',
+        CONFIG.depositInstructions,
+        '',
+        '— Braided by Rolake',
+      ].join('\n')
+
+  const payload = {
+    access_key: key,
+    subject,
+    from_name: 'Braided by Rolake',
+    email: booking.email,
+    name: booking.clientName,
+    message,
+    status_url: statusUrl,
+    booking_id: booking.id,
+    ccemail: booking.email,
+  }
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    const data = (await res.json()) as { success?: boolean; message?: string }
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message || 'Email send failed' }
+    }
+    return { ok: true }
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : 'Network error'
+    console.error('[Web3Forms]', errMessage)
+    return { ok: false, error: errMessage }
+  }
+}
+
 /**
  * Notify owner when a client submits a new review (pending moderation).
  */

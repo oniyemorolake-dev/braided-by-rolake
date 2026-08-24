@@ -34,8 +34,21 @@ const styles: Record<
   },
 }
 
-export function StatusBadge({ status }: { status: BookingStatus }) {
-  const s = styles[status]
+export function StatusBadge({
+  status,
+  depositPaid,
+}: {
+  status: BookingStatus
+  /** When true and still awaiting_deposit, show “Deposit sent” instead */
+  depositPaid?: boolean
+}) {
+  const s =
+    status === 'awaiting_deposit' && depositPaid
+      ? {
+          label: 'Deposit sent',
+          className: 'bg-emerald-100 text-emerald-800',
+        }
+      : styles[status]
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.className}`}

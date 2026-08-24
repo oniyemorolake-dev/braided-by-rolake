@@ -18,6 +18,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import {
   CancelNoticeLine,
   DepositInstructions,
+  DepositSentNotice,
   PrepInstructionsBlock,
 } from '../components/BookingNotices'
 import { getBookingById } from '../lib/storage'
@@ -92,21 +93,27 @@ export function Status() {
       <div className="card-soft space-y-5 p-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-3xl font-semibold text-brand">
-            {isAwaitingDeposit
-              ? 'Awaiting deposit'
-              : isConfirmed
-                ? 'Confirmed'
-                : isQuoteRequested
-                  ? 'Quote requested'
-                  : isCountered && isCustom
-                    ? 'Your quote'
-                    : 'Your booking'}
+            {isAwaitingDeposit && booking.depositPaid
+              ? 'Deposit marked as sent'
+              : isAwaitingDeposit
+                ? 'Awaiting deposit'
+                : isConfirmed
+                  ? 'Confirmed'
+                  : isQuoteRequested
+                    ? 'Quote requested'
+                    : isCountered && isCustom
+                      ? 'Your quote'
+                      : 'Your booking'}
           </h1>
-          <StatusBadge status={booking.status} />
+          <StatusBadge status={booking.status} depositPaid={booking.depositPaid} />
         </div>
 
         <p className="text-sm text-brand/65">
           {isAwaitingDeposit &&
+            booking.depositPaid &&
+            'Thanks — we’ve noted that you sent the deposit. Your booking is confirmed once Rolake verifies the e-Transfer. You’ll get an email when it’s confirmed.'}
+          {isAwaitingDeposit &&
+            !booking.depositPaid &&
             `Send your ${formatPrice(deposit)} Interac e-Transfer to ${CONFIG.depositEmail}. Your booking becomes Confirmed once Rolake marks the deposit received. Remaining balance is paid in person.`}
           {isConfirmed &&
             'Your deposit was received and your appointment is confirmed. See prep tips below.'}
@@ -130,7 +137,8 @@ export function Status() {
             'Status updates as Rolake reviews your request.'}
         </p>
 
-        {isAwaitingDeposit && <DepositInstructions amount={deposit} />}
+        {isAwaitingDeposit && booking.depositPaid && <DepositSentNotice amount={deposit} />}
+        {isAwaitingDeposit && !booking.depositPaid && <DepositInstructions amount={deposit} />}
 
         <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
@@ -214,7 +222,7 @@ export function Status() {
                 isConfirmed
                   ? `${formatPrice(deposit)} · received`
                   : booking.depositPaid
-                    ? `${formatPrice(deposit)} · marked sent`
+                    ? `${formatPrice(deposit)} · sent (pending verify)`
                     : formatPrice(deposit)
               }
             />

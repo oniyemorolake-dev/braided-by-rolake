@@ -45,11 +45,32 @@ export function DepositInstructions({
         </>
       )}
       <p className={compact ? 'mt-2 text-brand/65' : 'mt-3 text-sm text-white/85'}>
-        Your booking is only confirmed once the deposit is received. Remaining balance is paid in
-        person.
+        Your booking is only confirmed once Rolake marks the deposit received.
       </p>
       <p className={compact ? 'mt-2 text-xs text-brand/55' : 'mt-2 text-xs text-white/75'}>
         {CONFIG.depositInstructions}
+      </p>
+    </div>
+  )
+}
+
+/** Shown after the client taps “I’ve sent the deposit” — still awaiting Rolake */
+export function DepositSentNotice({ amount }: { amount?: number }) {
+  const deposit = amount ?? CONFIG.depositAmount
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5 text-emerald-950">
+      <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700/80">
+        Deposit marked as sent
+      </p>
+      <p className="mt-1 font-display text-3xl font-semibold text-emerald-900">
+        {formatPrice(deposit)}
+      </p>
+      <p className="mt-3 text-sm leading-relaxed text-emerald-900/85">
+        Got it — thanks! Your booking is <strong>not fully confirmed yet</strong>. Rolake will
+        check for the e-Transfer and then mark you Confirmed. Keep your status link handy.
+      </p>
+      <p className="mt-2 text-xs text-emerald-800/70">
+        If anything looks off, text {CONFIG.contactPhone || CONFIG.phoneDisplay}.
       </p>
     </div>
   )
