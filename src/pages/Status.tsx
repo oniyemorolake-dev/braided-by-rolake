@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import {
   CONFIG,
   formatAddonsLabel,
+  formatBraidBaseLabel,
   formatDateLabel,
   formatMobileLabel,
   formatPrice,
@@ -142,6 +143,9 @@ export function Status() {
 
         <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
+          {formatBraidBaseLabel(booking.addonIds) && (
+            <Row label="Base" value={formatBraidBaseLabel(booking.addonIds)!} />
+          )}
           {booking.size && <Row label="Size" value={formatSizeLabel(booking.size)} />}
           {!isCustom && (
             <>

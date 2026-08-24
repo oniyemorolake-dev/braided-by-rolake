@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  ADDONS,
+  BRAID_BASE_OPTIONS,
   CONFIG,
   LENGTH_OPTIONS,
   MOBILE_BASE,
@@ -18,6 +18,7 @@ import {
   DISCOUNT_PRICE_FLOOR,
   clampDiscountAmount,
   formatAddonsLabel,
+  formatBraidBaseLabel,
   formatDateLabel,
   formatDuration,
   formatMobileLabel,
@@ -32,9 +33,12 @@ import {
   getLengthOption,
   getMenServices,
   getMobileZone,
+  getAddonsForService,
   getServiceById,
   isCustomQuoteService,
+  withBraidBase,
   type Booking,
+  type BraidBaseId,
   type BraidSizeId,
   type LengthId,
   type MobileZoneId,
@@ -85,6 +89,7 @@ export function Booking() {
   )
   const [serviceId, setServiceId] = useState(initialService)
   const [size, setSize] = useState<BraidSizeId>('medium')
+  const [braidBase, setBraidBase] = useState<BraidBaseId>('box')
   const [lengthId, setLengthId] = useState<LengthId>('shoulder')
   const [addonIds, setAddonIds] = useState<string[]>([])
   const [mobileService, setMobileService] = useState(false)
@@ -176,6 +181,7 @@ export function Booking() {
     setDate('')
     setSlot('')
     setSize('medium')
+    setBraidBase('box')
     setLengthId('shoulder')
     setAddonIds([])
     setMobileService(false)
@@ -285,7 +291,7 @@ export function Booking() {
         email,
         size: service.hasSizes === false ? undefined : size,
         lengthId,
-        addonIds,
+        addonIds: service.hasBraidBase ? withBraidBase(addonIds, braidBase) : addonIds,
         mobileService,
         mobileZoneId: mobileService && mobileZoneId ? mobileZoneId : undefined,
         mobileAddress: mobileService ? mobileAddress : undefined,
@@ -666,6 +672,40 @@ export function Booking() {
             </button>
           </div>
 
+          {service.hasBraidBase && !isQuote && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-brand">
+                Base style
+              </label>
+              <p className="mb-2 text-xs text-brand/55">
+                French curls can be done on a box braid or knotless base.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {BRAID_BASE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setBraidBase(opt.id)}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${
+                      braidBase === opt.id
+                        ? 'border-accent bg-lilac text-brand'
+                        : 'border-brand/15 bg-white hover:border-accent/40'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{opt.label}</p>
+                    <p
+                      className={`mt-0.5 text-xs ${
+                        braidBase === opt.id ? 'text-brand/70' : 'text-brand/50'
+                      }`}
+                    >
+                      {opt.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {service.hasSizes !== false && !isQuote && (
             <div>
               <label className="mb-2 block text-sm font-medium text-brand">Size</label>
@@ -735,11 +775,12 @@ export function Booking() {
           {!isQuote &&
             service.category !== 'care' &&
             service.id !== 'kids-take-out' &&
-            service.id !== 'kids-detangle' && (
+            service.id !== 'kids-detangle' &&
+            getAddonsForService(service).length > 0 && (
           <div>
             <label className="mb-2 block text-sm font-medium text-brand">Add-ons</label>
             <div className="space-y-2">
-              {ADDONS.map((addon) => {
+              {getAddonsForService(service).map((addon) => {
                 const on = addonIds.includes(addon.id)
                 return (
                   <button
@@ -934,6 +975,7 @@ export function Booking() {
             <p className="font-semibold text-brand">{service.name}</p>
             {!isQuote && (
               <p>
+                {service.hasBraidBase && `${BRAID_BASE_OPTIONS.find((o) => o.id === braidBase)?.label} · `}
                 {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
                 {getLengthOption(lengthId)?.label}
                 {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
@@ -1046,6 +1088,7 @@ export function Booking() {
             </p>
             {!isQuote && (
               <p className="mt-1">
+                {service.hasBraidBase && `${BRAID_BASE_OPTIONS.find((o) => o.id === braidBase)?.label} · `}
                 {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
                 {getLengthOption(lengthId)?.label}
                 {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
@@ -1434,6 +1477,9 @@ function ConfirmationView({
 
         <dl className="space-y-3 text-sm">
           <Row label="Service" value={service?.name ?? ''} />
+          {formatBraidBaseLabel(live.addonIds) && (
+            <Row label="Base" value={formatBraidBaseLabel(live.addonIds)!} />
+          )}
           {live.size && <Row label="Size" value={formatSizeLabel(live.size)} />}
           {!isCustom && (
             <>

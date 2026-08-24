@@ -7,6 +7,7 @@ import {
   formatSlotLabel,
   formatSizeLabel,
   formatAddonsLabel,
+  formatBraidBaseLabel,
   formatMobileLabel,
   getLengthOption,
   getServiceById,
@@ -692,6 +693,12 @@ export function Admin() {
                     <div>
                       <span className="text-brand/45">Discount · </span>
                       {b.discountCode} (−{formatPrice(b.discountAmount ?? 0)})
+                    </div>
+                  )}
+                  {formatBraidBaseLabel(b.addonIds) && (
+                    <div>
+                      <span className="text-brand/45">Base · </span>
+                      {formatBraidBaseLabel(b.addonIds)}
                     </div>
                   )}
                   {b.size && (

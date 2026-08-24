@@ -6,6 +6,7 @@ import {
   formatSlotLabel,
   getServiceById,
   formatAddonsLabel,
+  formatBraidBaseLabel,
   formatSizeLabel,
   formatMobileLabel,
   getLengthOption,
@@ -59,6 +60,9 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
   const message = [
     `Status: ${booking.status}`,
     `Service: ${service?.name ?? booking.serviceId}`,
+    formatBraidBaseLabel(booking.addonIds)
+      ? `Base: ${formatBraidBaseLabel(booking.addonIds)}`
+      : null,
     `When: ${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`,
     `Client: ${booking.clientName} · ${booking.phone} · ${booking.email}`,
     priceLine,
@@ -78,7 +82,9 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     '',
     `Booking ID: ${booking.id}`,
     `Status page: /status/${booking.id}`,
-  ].join('\n')
+  ]
+    .filter((line): line is string => line != null)
+    .join('\n')
 
   const payload = {
     access_key: key,
@@ -87,6 +93,7 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
     message,
     service: service?.name ?? booking.serviceId,
     size: formatSizeLabel(booking.size),
+    braid_base: formatBraidBaseLabel(booking.addonIds) || '(n/a)',
     length: getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder',
     addons: formatAddonsLabel(booking.addonIds),
     location: formatMobileLabel(booking),

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   CONFIG,
   formatAddonsLabel,
+  formatBraidBaseLabel,
   formatDateLabel,
   formatMobileLabel,
   formatPrice,
@@ -687,6 +688,9 @@ function BookingDetailSheet({
                   : ' · unpaid'
             }`}
           />
+          {formatBraidBaseLabel(booking.addonIds) && (
+            <Row label="Base" value={formatBraidBaseLabel(booking.addonIds)!} />
+          )}
           {booking.size && <Row label="Size" value={formatSizeLabel(booking.size)} />}
           <Row
             label="Length"

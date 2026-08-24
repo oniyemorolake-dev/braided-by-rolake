@@ -15,6 +15,7 @@ export type BookingStatus =
   | 'cancelled'
 
 export type BraidSizeId = 'small' | 'smedium' | 'medium' | 'large'
+export type BraidBaseId = 'box' | 'knotless'
 export type LengthId = 'shoulder' | 'midback' | 'waist' | 'butt'
 export type MobileZoneId = 'nw' | 'sw' | 'ne' | 'se' | 'nearby' | 'extended'
 export type DiscountType = 'review' | 'first_time' | 'referral' | 'loyalty' | 'promo'
@@ -34,10 +35,14 @@ export interface Service {
   featured?: boolean
   /** Whether client picks Small / Smedium / Medium / Large */
   hasSizes?: boolean
+  /** Whether client picks box vs knotless as the braid base (e.g. French Curls) */
+  hasBraidBase?: boolean
   /** Adult styles vs kids (ages 4-11) vs hair care extras vs men’s braids */
   category?: 'adult' | 'kids' | 'care' | 'men'
   /** Custom / special design - no listed price; client requests a quote */
   quoteOnly?: boolean
+  /** If set, only these add-ons are offered (length is separate). Omit = all add-ons. */
+  allowedAddonIds?: string[]
 }
 
 export interface SizeOption {
@@ -349,6 +354,55 @@ export const SIZE_OPTIONS: SizeOption[] = [
   },
 ]
 
+/** Box vs knotless base — used by French Curls (and similar) */
+export const BRAID_BASE_OPTIONS: {
+  id: BraidBaseId
+  label: string
+  description: string
+}[] = [
+  {
+    id: 'box',
+    label: 'Box braids',
+    description: 'Classic box braid base with French curl ends',
+  },
+  {
+    id: 'knotless',
+    label: 'Knotless',
+    description: 'Knotless braid base with French curl ends',
+  },
+]
+
+const BRAID_BASE_PREFIX = 'braid-base:'
+
+export function braidBaseAddonId(id: BraidBaseId): string {
+  return `${BRAID_BASE_PREFIX}${id}`
+}
+
+export function getBraidBase(addonIds?: string[]): BraidBaseId | undefined {
+  const raw = addonIds?.find((id) => id.startsWith(BRAID_BASE_PREFIX))
+  if (!raw) return undefined
+  const id = raw.slice(BRAID_BASE_PREFIX.length)
+  return id === 'box' || id === 'knotless' ? id : undefined
+}
+
+export function formatBraidBaseLabel(addonIds?: string[]): string | undefined {
+  const id = getBraidBase(addonIds)
+  return BRAID_BASE_OPTIONS.find((o) => o.id === id)?.label
+}
+
+/** Style add-ons only (excludes braid-base markers stored in addon_ids). */
+export function styleAddonIds(addonIds?: string[]): string[] {
+  return (addonIds ?? []).filter((id) => !id.startsWith(BRAID_BASE_PREFIX))
+}
+
+export function withBraidBase(
+  addonIds: string[] | undefined,
+  base: BraidBaseId | undefined,
+): string[] {
+  const rest = styleAddonIds(addonIds)
+  return base ? [...rest, braidBaseAddonId(base)] : rest
+}
+
 export const LENGTH_OPTIONS: LengthOption[] = [
   {
     id: 'shoulder',
@@ -387,7 +441,7 @@ export const ADDONS: Addon[] = [
   {
     id: 'boho',
     name: 'Boho strands',
-    price: 25,
+    price: 10,
     description: 'Loose human-hair strands woven through for a goddess look',
   },
   {
@@ -561,16 +615,6 @@ export const SERVICES: Service[] = [
     featured: true,
   },
   {
-    id: 'stitch',
-    name: 'Stitch Braids',
-    price: 100,
-    durationHours: 2.5,
-    description:
-      'Clean, stitched parts for a sharp finish. Straight-back or custom designs available.',
-    minOffer: 80,
-    hasSizes: false,
-  },
-  {
     id: 'twists',
     name: 'Two-Strand Twists',
     price: 165,
@@ -627,10 +671,12 @@ export const SERVICES: Service[] = [
     price: 190,
     durationHours: 5,
     description:
-      'Braids finished with soft French-curl ends for bounce and volume. Pretty, feminine, and great for events.',
+      'Choose a box braid or knotless base, pick your size and length, finished with soft French-curl ends for bounce and volume. Optional boho strands.',
     minOffer: 155,
     featured: true,
     hasSizes: true,
+    hasBraidBase: true,
+    allowedAddonIds: ['boho'],
   },
   {
     id: 'french-plaits',
@@ -749,11 +795,11 @@ export const SERVICES: Service[] = [
   {
     id: 'gel-styles',
     name: 'Gel Styles',
-    price: 45,
-    durationHours: 1,
+    price: 80,
+    durationHours: 1.5,
     description:
-      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included for this service.',
-    minOffer: 35,
+      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included for this service. From $80.',
+    minOffer: 65,
     hasSizes: false,
     category: 'care',
     featured: true,
@@ -818,17 +864,6 @@ export const SERVICES: Service[] = [
     hasSizes: false,
     category: 'men',
     featured: true,
-  },
-  {
-    id: 'men-stitch',
-    name: 'Men’s Stitch Braids',
-    price: 85,
-    durationHours: 2,
-    description:
-      'Sharp stitch parts for a crisp, clean finish — straight-back or simple designs.',
-    minOffer: 65,
-    hasSizes: false,
-    category: 'men',
   },
 
   // --- Kids (ages 4-11) ---
@@ -1073,6 +1108,14 @@ export function getAddon(id: string): Addon | undefined {
   return ADDONS.find((a) => a.id === id)
 }
 
+/** Add-ons offered for a service. Length is always separate when applicable. */
+export function getAddonsForService(service: Service): Addon[] {
+  if (!service.allowedAddonIds) return ADDONS
+  return service.allowedAddonIds
+    .map((id) => getAddon(id))
+    .filter((a): a is Addon => Boolean(a))
+}
+
 export function getMobileZone(id: MobileZoneId): MobileZone | undefined {
   return MOBILE_ZONES.find((z) => z.id === id)
 }
@@ -1103,7 +1146,7 @@ export function calculateBookingTotal(
   const men = service.category === 'men'
   const addonsTotal = care
     ? 0
-    : addonIds.reduce((sum, id) => sum + (getAddon(id)?.price ?? 0), 0)
+    : styleAddonIds(addonIds).reduce((sum, id) => sum + (getAddon(id)?.price ?? 0), 0)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.priceAdjust ?? 0)
   const lengthPrice = care || men ? 0 : (length?.price ?? 0)
   const mobileFee = mobileZoneId ? (getMobileZone(mobileZoneId)?.price ?? 0) : 0
@@ -1124,7 +1167,8 @@ export function calculateBookingDurationHours(
   const lengthExtra =
     lengthId === 'waist' ? 0.5 : lengthId === 'butt' ? 1 : lengthId === 'midback' ? 0.25 : 0
   const addonExtra =
-    (addonIds.includes('boho') ? 0.5 : 0) + (addonIds.includes('curls') ? -0.5 : 0)
+    (styleAddonIds(addonIds).includes('boho') ? 0.5 : 0) +
+    (styleAddonIds(addonIds).includes('curls') ? -0.5 : 0)
   return Math.max(1, service.durationHours + sizeAdjust + lengthExtra + addonExtra)
 }
 
@@ -1188,8 +1232,9 @@ export function formatSizeLabel(id?: BraidSizeId): string {
 }
 
 export function formatAddonsLabel(ids?: string[]): string {
-  if (!ids?.length) return 'None'
-  return ids.map((id) => getAddon(id)?.name ?? id).join(', ')
+  const styleIds = styleAddonIds(ids)
+  if (!styleIds.length) return 'None'
+  return styleIds.map((id) => getAddon(id)?.name ?? id).join(', ')
 }
 
 export function formatMobileLabel(booking: {
