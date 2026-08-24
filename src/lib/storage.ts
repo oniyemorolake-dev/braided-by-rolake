@@ -251,7 +251,7 @@ export async function getBookingById(id: string): Promise<Booking | null> {
   return rowToBooking(data as BookingRow)
 }
 
-/** Insert a new booking. */
+/** Insert a new booking via security-definer RPC (bypasses INSERT…RETURNING RLS trap). */
 export async function insertBooking(booking: Booking): Promise<Booking> {
   if (!supabase || !isSupabaseConfigured) {
     const next = [booking, ...loadLocal()]
@@ -259,16 +259,15 @@ export async function insertBooking(booking: Booking): Promise<Booking> {
     return booking
   }
 
-  const { error } = await supabase.from('bookings').insert(bookingToRow(booking))
+  const { data, error } = await supabase.rpc('create_booking', {
+    p_row: bookingToRow(booking),
+  })
   if (error) {
     console.error('[bookings] insert failed', error.message)
     throw new Error(error.message)
   }
 
-  // INSERT has no SELECT policy — re-fetch via id RPC
-  const saved = await getBookingById(booking.id)
-  if (!saved) throw new Error('Booking created but could not be reloaded.')
-  return saved
+  return rowToBooking(data as BookingRow)
 }
 
 type UpdateMode = 'admin' | 'client_deposit' | 'client_accept' | 'client_walk' | 'auto'
