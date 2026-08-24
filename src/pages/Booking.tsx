@@ -13,6 +13,8 @@ import {
   FIRST_TIME_CODE,
   FIRST_TIME_DISCOUNT,
   FIRST_TIME_ENABLED,
+  FIRST_TIME_THRESHOLD,
+  getFirstTimeDiscountAmount,
   DISCOUNT_PRICE_FLOOR,
   clampDiscountAmount,
   formatAddonsLabel,
@@ -122,7 +124,7 @@ export function Booking() {
       ? discountResult?.ok && discountResult.amount != null
         ? clampDiscountAmount(total, discountResult.amount)
         : applyFirstTime && firstTimeEligible && !discountCode.trim()
-          ? clampDiscountAmount(total, FIRST_TIME_DISCOUNT)
+          ? clampDiscountAmount(total, getFirstTimeDiscountAmount(total))
           : 0
       : 0
 
@@ -1163,8 +1165,11 @@ export function Booking() {
                     }}
                   />
                   <span>
-                    Apply first-time discount ({formatPrice(FIRST_TIME_DISCOUNT)} off with{' '}
-                    {FIRST_TIME_CODE})
+                    Apply first-time discount (
+                    {total < FIRST_TIME_THRESHOLD
+                      ? `5% off · ${formatPrice(getFirstTimeDiscountAmount(total))}`
+                      : `${formatPrice(FIRST_TIME_DISCOUNT)} off`}{' '}
+                    with {FIRST_TIME_CODE})
                   </span>
                 </label>
               )}

@@ -228,10 +228,34 @@ export const POLICIES = [
   'No wash / shampoo services - take-outs and dry detangling only for hair-care appointments.',
 ] as const
 
-/** Discount program config ? amounts & toggles live here */
+/** Discount program config — amounts & toggles live here */
 export const FIRST_TIME_ENABLED = true
+/** Flat $ off when first-booking total is at/above the threshold */
 export const FIRST_TIME_DISCOUNT = 15
+/** Percent off when first-booking total is below the threshold (0.05 = 5%) */
+export const FIRST_TIME_PERCENT = 0.05
+export const FIRST_TIME_THRESHOLD = 150
 export const FIRST_TIME_CODE = 'WELCOME'
+
+/** First-time WELCOME amount for a given subtotal */
+export function getFirstTimeDiscountAmount(subtotal: number): number {
+  if (!Number.isFinite(subtotal) || subtotal <= 0) return 0
+  if (subtotal < FIRST_TIME_THRESHOLD) {
+    return Math.round(subtotal * FIRST_TIME_PERCENT * 100) / 100
+  }
+  return FIRST_TIME_DISCOUNT
+}
+
+export function firstTimeDiscountLabel(subtotal?: number): string {
+  if (subtotal != null && Number.isFinite(subtotal) && subtotal > 0) {
+    const amt = getFirstTimeDiscountAmount(subtotal)
+    if (subtotal < FIRST_TIME_THRESHOLD) {
+      return `5% off (${formatPrice(amt)}) under ${formatPrice(FIRST_TIME_THRESHOLD)}`
+    }
+    return `${formatPrice(amt)} off at ${formatPrice(FIRST_TIME_THRESHOLD)}+`
+  }
+  return `5% off under ${formatPrice(FIRST_TIME_THRESHOLD)}, or $${FIRST_TIME_DISCOUNT} off at $${FIRST_TIME_THRESHOLD}+`
+}
 
 export const REFERRAL_ENABLED = true
 export const REFERRAL_DISCOUNT_FRIEND = 15
@@ -253,7 +277,7 @@ export const DISCOUNTS = [
     type: 'first_time' as DiscountType,
     label: 'First-time client',
     detail: FIRST_TIME_ENABLED
-      ? `$${FIRST_TIME_DISCOUNT} off your first booking ? use code ${FIRST_TIME_CODE} or we?ll offer it automatically for new emails`
+      ? `New clients: 5% off under $${FIRST_TIME_THRESHOLD}, or $${FIRST_TIME_DISCOUNT} off at $${FIRST_TIME_THRESHOLD}+ — use code ${FIRST_TIME_CODE} or we’ll offer it automatically`
       : 'First-time discount currently paused',
     enabled: FIRST_TIME_ENABLED,
   },
