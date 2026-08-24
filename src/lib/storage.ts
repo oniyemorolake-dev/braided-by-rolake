@@ -109,40 +109,6 @@ function occupancyToBooking(row: OccupancyRow): Booking {
   }
 }
 
-function bookingToRow(booking: Booking): Omit<BookingRow, 'quoted_price'> & { quoted_price?: number | null } {
-  return {
-    id: booking.id,
-    service_id: booking.serviceId,
-    date: booking.date,
-    slot: booking.slot,
-    client_name: booking.clientName,
-    phone: booking.phone,
-    email: booking.email,
-    price: booking.price,
-    type: booking.type,
-    status: booking.status,
-    offer_amount: booking.offerAmount ?? null,
-    counter_amount: booking.counterAmount ?? null,
-    quoted_price: booking.counterAmount ?? null,
-    note: booking.note ?? null,
-    size: booking.size ?? null,
-    length_id: booking.lengthId ?? null,
-    addon_ids: booking.addonIds ?? [],
-    mobile_service: Boolean(booking.mobileService),
-    mobile_zone_id: booking.mobileZoneId ?? null,
-    mobile_address: booking.mobileAddress ?? null,
-    deposit_amount: booking.depositAmount ?? null,
-    deposit_paid: Boolean(booking.depositPaid),
-    inspo_url: booking.inspoUrl ?? null,
-    notes_accommodations: booking.notesAccommodations ?? null,
-    discount_code: booking.discountCode ?? null,
-    discount_amount: booking.discountAmount ?? null,
-    discount_type: booking.discountType ?? null,
-    created_at: booking.createdAt,
-    updated_at: booking.updatedAt,
-  }
-}
-
 function patchToSnake(patch: Partial<Booking>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   if (patch.serviceId !== undefined) out.service_id = patch.serviceId
@@ -251,6 +217,41 @@ export async function getBookingById(id: string): Promise<Booking | null> {
   return rowToBooking(data as BookingRow)
 }
 
+/** Plain JSON payload for create_booking RPC */
+function bookingToRpcPayload(booking: Booking): Record<string, unknown> {
+  return {
+    id: booking.id,
+    service_id: booking.serviceId,
+    date: booking.date,
+    slot: booking.slot,
+    client_name: booking.clientName,
+    phone: booking.phone,
+    email: booking.email,
+    price: booking.price,
+    type: booking.type,
+    status: booking.status,
+    offer_amount: booking.offerAmount ?? null,
+    counter_amount: booking.counterAmount ?? null,
+    quoted_price: booking.counterAmount ?? null,
+    note: booking.note ?? null,
+    size: booking.size ?? null,
+    length_id: booking.lengthId ?? null,
+    addon_ids: booking.addonIds ?? [],
+    mobile_service: Boolean(booking.mobileService),
+    mobile_zone_id: booking.mobileZoneId ?? null,
+    mobile_address: booking.mobileAddress ?? null,
+    deposit_amount: booking.depositAmount ?? null,
+    deposit_paid: Boolean(booking.depositPaid),
+    inspo_url: booking.inspoUrl ?? null,
+    notes_accommodations: booking.notesAccommodations ?? null,
+    discount_code: booking.discountCode ?? null,
+    discount_amount: booking.discountAmount ?? null,
+    discount_type: booking.discountType ?? null,
+    created_at: booking.createdAt,
+    updated_at: booking.updatedAt,
+  }
+}
+
 /** Insert a new booking via security-definer RPC (bypasses INSERT…RETURNING RLS trap). */
 export async function insertBooking(booking: Booking): Promise<Booking> {
   if (!supabase || !isSupabaseConfigured) {
@@ -259,15 +260,25 @@ export async function insertBooking(booking: Booking): Promise<Booking> {
     return booking
   }
 
-  const { data, error } = await supabase.rpc('create_booking', {
-    p_row: bookingToRow(booking),
-  })
-  if (error) {
-    console.error('[bookings] insert failed', error.message)
-    throw new Error(error.message)
+  const payload = bookingToRpcPayload(booking)
+  const { data, error } = await supabase.rpc('create_booking', { p_row: payload })
+  if (!error && data) {
+    return rowToBooking(data as BookingRow)
   }
 
-  return rowToBooking(data as BookingRow)
+  // Fallback: direct insert with no RETURNING (avoids SELECT RLS), then fetch by id
+  console.warn('[bookings] create_booking RPC failed, trying direct insert', error?.message)
+  const { error: insertError } = await supabase.from('bookings').insert(payload)
+  if (insertError) {
+    console.error('[bookings] insert failed', insertError.message)
+    throw new Error(insertError.message || error?.message || 'Could not save booking.')
+  }
+
+  const saved = await getBookingById(booking.id)
+  if (!saved) {
+    throw new Error('Booking was saved but could not be reloaded. Check your status link or refresh admin.')
+  }
+  return saved
 }
 
 type UpdateMode = 'admin' | 'client_deposit' | 'client_accept' | 'client_walk' | 'auto'
