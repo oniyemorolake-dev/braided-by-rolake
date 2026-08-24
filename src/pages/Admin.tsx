@@ -155,38 +155,58 @@ export function Admin() {
     setAuthed(false)
   }
 
+  const tabCounts = useMemo(() => {
+    let pending = 0
+    let awaiting = 0
+    let confirmed = 0
+    for (const b of bookings) {
+      if (b.status === 'pending' || b.status === 'quote_requested' || b.status === 'countered') {
+        pending += 1
+      } else if (b.status === 'awaiting_deposit') {
+        awaiting += 1
+      } else if (b.status === 'confirmed') {
+        confirmed += 1
+      }
+    }
+    return { pending, awaiting, confirmed, all: bookings.length }
+  }, [bookings])
+
   const filtered = useMemo(() => {
-    const sorted = [...bookings].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    if (tab === 'pending') {
-      return sorted.filter(
-        (b) =>
-          b.status === 'pending' ||
-          b.status === 'quote_requested' ||
-          b.status === 'countered',
-      )
-    }
-    if (tab === 'awaiting') {
-      return sorted.filter((b) => b.status === 'awaiting_deposit')
-    }
-    if (tab === 'confirmed') {
-      return sorted.filter((b) => b.status === 'confirmed')
-    }
-    return sorted
+    const list =
+      tab === 'pending'
+        ? bookings.filter(
+            (b) =>
+              b.status === 'pending' ||
+              b.status === 'quote_requested' ||
+              b.status === 'countered',
+          )
+        : tab === 'awaiting'
+          ? bookings.filter((b) => b.status === 'awaiting_deposit')
+          : tab === 'confirmed'
+            ? bookings.filter((b) => b.status === 'confirmed')
+            : [...bookings]
+
+    return [...list].sort((a, b) => {
+      const byDate = a.date.localeCompare(b.date)
+      if (byDate !== 0) return byDate
+      const bySlot = a.slot.localeCompare(b.slot)
+      if (bySlot !== 0) return bySlot
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
   }, [bookings, tab])
 
-  const confirmedByDate = useMemo(() => {
+  /** Group current list by appointment date for a clear schedule view */
+  const filteredByDate = useMemo(() => {
     const map = new Map<string, Booking[]>()
-    bookings
-      .filter((b) => b.status === 'confirmed')
-      .forEach((b) => {
-        const list = map.get(b.date) ?? []
-        list.push(b)
-        map.set(b.date, list)
-      })
+    for (const b of filtered) {
+      const list = map.get(b.date) ?? []
+      list.push(b)
+      map.set(b.date, list)
+    }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  }, [bookings])
+  }, [filtered])
+
+  const needsAttention = tabCounts.pending + tabCounts.awaiting
 
   if (!authed) {
     return (
@@ -220,7 +240,9 @@ export function Admin() {
         <div>
           <h1 className="font-display text-3xl font-semibold text-brand">Dashboard</h1>
           <p className="text-sm text-brand/60">
-            {loading ? 'Loading…' : `${bookings.length} total bookings & offers`}
+            {loading
+              ? 'Loading…'
+              : `${bookings.length} saved · ${needsAttention} need action · ${tabCounts.confirmed} confirmed`}
             {' · '}
             {storageMode === 'supabase' ? 'Synced online (Supabase)' : 'Local only (this browser)'}
           </p>
@@ -541,12 +563,12 @@ export function Admin() {
       <div className="mt-6 flex flex-wrap gap-1 rounded-2xl bg-lilac/70 p-1">
         {(
           [
-            ['pending', 'Offers & quotes'],
-            ['awaiting', 'Awaiting deposit'],
-            ['confirmed', 'Confirmed'],
-            ['all', 'All'],
+            ['pending', 'Offers & quotes', tabCounts.pending],
+            ['awaiting', 'Awaiting deposit', tabCounts.awaiting],
+            ['confirmed', 'Confirmed', tabCounts.confirmed],
+            ['all', 'All', tabCounts.all],
           ] as const
-        ).map(([key, label]) => (
+        ).map(([key, label, count]) => (
           <button
             key={key}
             type="button"
@@ -556,28 +578,40 @@ export function Admin() {
             }`}
           >
             {label}
+            <span className={`ml-1 tabular-nums ${tab === key ? 'text-accent' : 'text-brand/40'}`}>
+              ({count})
+            </span>
           </button>
         ))}
       </div>
 
-      {tab === 'confirmed' && confirmedByDate.length > 0 && (
+      {filteredByDate.length > 0 && (
         <div className="mt-6 space-y-4">
-          <h2 className="font-display text-xl font-semibold text-brand">By date</h2>
-          {confirmedByDate.map(([date, list]) => (
+          <h2 className="font-display text-xl font-semibold text-brand">
+            {tab === 'confirmed'
+              ? 'Confirmed schedule'
+              : tab === 'awaiting'
+                ? 'Waiting on deposit'
+                : tab === 'pending'
+                  ? 'Needs your reply'
+                  : 'By appointment date'}
+          </h2>
+          {filteredByDate.map(([date, list]) => (
             <div key={date} className="card-soft p-4">
               <p className="font-semibold text-brand">{formatDateLabel(date)}</p>
               <ul className="mt-2 space-y-2">
-                {list
-                  .sort((a, b) => a.slot.localeCompare(b.slot))
-                  .map((b) => (
-                    <li key={b.id} className="flex justify-between gap-2 text-sm text-brand/75">
-                      <span>
-                        {formatSlotLabel(b.slot)} · {getServiceById(b.serviceId)?.name} ·{' '}
-                        {b.clientName}
-                      </span>
-                      <span className="font-medium">{formatPrice(b.price)}</span>
-                    </li>
-                  ))}
+                {list.map((b) => (
+                  <li key={b.id} className="flex justify-between gap-2 text-sm text-brand/75">
+                    <span>
+                      {formatSlotLabel(b.slot)} · {getServiceById(b.serviceId)?.name} ·{' '}
+                      {b.clientName || 'Client'}
+                      <span className="ml-1 text-brand/45">({b.status.replace(/_/g, ' ')})</span>
+                    </span>
+                    <span className="shrink-0 font-medium">
+                      {b.status === 'quote_requested' ? 'Quote' : formatPrice(b.price)}
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}
@@ -585,6 +619,7 @@ export function Admin() {
       )}
 
       <div className="mt-6 space-y-4">
+        <h2 className="font-display text-lg font-semibold text-brand">Details</h2>
         {filtered.length === 0 ? (
           <div className="card-soft px-6 py-12 text-center">
             <p className="font-display text-2xl text-brand">Nothing here yet</p>
@@ -593,7 +628,9 @@ export function Admin() {
                 ? 'New offers and custom quote requests show up here.'
                 : tab === 'awaiting'
                   ? 'Bookings waiting on deposit appear here — tap Deposit received when paid.'
-                  : 'Confirmed appointments will appear as deposits are marked received.'}
+                  : tab === 'confirmed'
+                    ? 'Confirmed appointments will appear as deposits are marked received.'
+                    : 'New client bookings are saved to Supabase and listed here automatically.'}
             </p>
           </div>
         ) : (
