@@ -30,6 +30,7 @@ import {
   getDepositForPrice,
   getKidsServices,
   getLengthOption,
+  getMenServices,
   getMobileZone,
   getServiceById,
   isCustomQuoteService,
@@ -155,6 +156,10 @@ export function Booking() {
     () => filterServices(getAdultServices(), serviceQuery),
     [serviceQuery],
   )
+  const menServices = useMemo(
+    () => filterServices(getMenServices(), serviceQuery),
+    [serviceQuery],
+  )
   const careServices = useMemo(
     () => filterServices(getCareServices(), serviceQuery),
     [serviceQuery],
@@ -163,7 +168,8 @@ export function Booking() {
     () => filterServices(getKidsServices(), serviceQuery),
     [serviceQuery],
   )
-  const serviceMatchCount = adultServices.length + careServices.length + kidsServices.length
+  const serviceMatchCount =
+    adultServices.length + menServices.length + careServices.length + kidsServices.length
 
   function selectService(id: string) {
     setServiceId(id)
@@ -522,11 +528,44 @@ export function Booking() {
           </div>
           )}
 
+          {menServices.length > 0 && (
+          <div>
+            <p className="mb-1 text-sm font-medium text-brand">Men’s braids</p>
+            <p className="mb-3 text-xs text-brand/55">
+              Cornrows, plaits, twists, and design styles for men.
+            </p>
+            <div className="space-y-3">
+              {menServices.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => selectService(s.id)}
+                  className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
+                >
+                  <PhotoSlot
+                    src={s.image ?? servicePhotoPath(s.id)}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-xl"
+                    label="Soon"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-brand">{s.name}</p>
+                    <p className="text-xs text-brand/55">
+                      from {formatPrice(s.price)} · {formatDuration(s.durationHours)}
+                    </p>
+                  </div>
+                  <span className="text-accent">→</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          )}
+
           {careServices.length > 0 && (
           <div>
-            <p className="mb-1 text-sm font-medium text-brand">Take outs &amp; detangling</p>
+            <p className="mb-1 text-sm font-medium text-brand">Hair care &amp; finishing</p>
             <p className="mb-3 text-xs text-brand/55">
-              Removal and no-wash detangle only — no wash services.
+              Take-outs, detangle, gel styles, and basic straighten — no wash services.
             </p>
             <div className="space-y-3">
               {careServices.map((s) => (
@@ -663,10 +702,10 @@ export function Booking() {
 
           {!isQuote &&
             service.category !== 'care' &&
+            service.category !== 'men' &&
             service.id !== 'kids-take-out' &&
             service.id !== 'kids-detangle' && (
-            <>
-          <div>
+            <div>
             <label className="mb-2 block text-sm font-medium text-brand">Length (add-on)</label>
             <div className="space-y-2">
               {LENGTH_OPTIONS.map((opt) => (
@@ -691,7 +730,12 @@ export function Booking() {
               ))}
             </div>
           </div>
+          )}
 
+          {!isQuote &&
+            service.category !== 'care' &&
+            service.id !== 'kids-take-out' &&
+            service.id !== 'kids-detangle' && (
           <div>
             <label className="mb-2 block text-sm font-medium text-brand">Add-ons</label>
             <div className="space-y-2">
@@ -729,7 +773,6 @@ export function Booking() {
               })}
             </div>
           </div>
-            </>
           )}
 
           {isQuote && (
@@ -743,7 +786,15 @@ export function Booking() {
             service.id === 'kids-take-out' ||
             service.id === 'kids-detangle') && (
             <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
-              No wash service — take-out / detangle only. Length and style add-ons don&apos;t apply.
+              No wash service — take-out, detangle, gel, or straighten only. Length and braid
+              add-ons don&apos;t apply.
+            </p>
+          )}
+
+          {service.category === 'men' && (
+            <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
+              Men&apos;s styles are priced as listed. Optional add-ons (like styling gel) are below —
+              extension length doesn&apos;t apply.
             </p>
           )}
 

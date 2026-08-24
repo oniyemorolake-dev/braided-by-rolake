@@ -14,6 +14,7 @@ import {
   getAdultServices,
   getCareServices,
   getKidsServices,
+  getMenServices,
 } from '../data'
 import { filterServices } from '../lib/serviceSearch'
 import { ServiceCard } from '../components/ServiceCard'
@@ -21,9 +22,10 @@ import { ServiceCard } from '../components/ServiceCard'
 export function Services() {
   const [query, setQuery] = useState('')
   const adult = useMemo(() => filterServices(getAdultServices(), query), [query])
+  const men = useMemo(() => filterServices(getMenServices(), query), [query])
   const care = useMemo(() => filterServices(getCareServices(), query), [query])
   const kids = useMemo(() => filterServices(getKidsServices(), query), [query])
-  const totalMatches = adult.length + care.length + kids.length
+  const totalMatches = adult.length + men.length + care.length + kids.length
   const searching = query.trim().length > 0
 
   return (
@@ -129,13 +131,30 @@ export function Services() {
         </section>
       )}
 
+      {men.length > 0 && (
+        <section className="mt-14">
+          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+            Men’s braids
+          </h2>
+          <p className="mt-1 text-sm text-brand/60">
+            Cornrows, plaits, twists, and design styles for men — clean parts and solid hold.
+          </p>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {men.map((s) => (
+              <ServiceCard key={s.id} service={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {care.length > 0 && (
         <section className="mt-14">
           <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
-            Take outs &amp; detangling
+            Hair care &amp; finishing
           </h2>
           <p className="mt-1 text-sm text-brand/60">
-            Braid removal and no-wash detangling only — no shampoo or wash services.
+            Take-outs, no-wash detangling, gel styles, and basic straighten — no shampoo/wash
+            services.
           </p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {care.map((s) => (

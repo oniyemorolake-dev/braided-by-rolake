@@ -20,7 +20,7 @@ const reasons = [
 
 export function Home() {
   const featured = SERVICES.filter(
-    (s) => s.featured && s.category !== 'care' && s.category !== 'kids',
+    (s) => s.featured && s.category !== 'care' && s.category !== 'kids' && s.category !== 'men',
   ).slice(0, 6)
 
   return (
