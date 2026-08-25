@@ -63,6 +63,8 @@ export interface CreateListedInput {
   mobileAddress?: string
   inspoUrl?: string
   notesAccommodations?: string
+  /** true = allow portfolio/social photos & videos; false = do not share */
+  mediaConsent: boolean
   /** Optional exact discount code (one per booking) */
   discountCode?: string
   /** Auto-apply first-time WELCOME when eligible and no code entered */
@@ -239,6 +241,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       depositPaid: false,
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
+      mediaConsent: Boolean(input.mediaConsent),
       discountCode,
       discountAmount,
       discountType,
@@ -292,6 +295,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       depositPaid: false,
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
+      mediaConsent: Boolean(input.mediaConsent),
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -338,6 +342,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       depositPaid: false,
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
+      mediaConsent: Boolean(input.mediaConsent),
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }

@@ -37,11 +37,13 @@ export interface Service {
   hasSizes?: boolean
   /** Whether client picks box vs knotless as the braid base (e.g. French Curls) */
   hasBraidBase?: boolean
+  /** Extension length add-on. Default true for adult styles; set false when length doesn’t apply. */
+  hasLength?: boolean
   /** Adult styles vs kids (ages 4-11) vs hair care extras vs men’s braids */
   category?: 'adult' | 'kids' | 'care' | 'men'
   /** Custom / special design - no listed price; client requests a quote */
   quoteOnly?: boolean
-  /** If set, only these add-ons are offered (length is separate). Omit = all add-ons. */
+  /** If set, only these add-ons are offered (length is separate). Omit = all add-ons. Empty = none. */
   allowedAddonIds?: string[]
 }
 
@@ -103,6 +105,8 @@ export interface Booking {
   inspoUrl?: string
   /** Allergies, sensitivities, or accommodations */
   notesAccommodations?: string
+  /** Client allows photos/videos of finished work for portfolio & social */
+  mediaConsent?: boolean
   /** Applied discount code (uppercase) */
   discountCode?: string
   discountAmount?: number
@@ -232,6 +236,24 @@ export const POLICIES = [
   'Prices as listed - deposit by e-Transfer (no card fees). Remaining balance paid in person.',
   'No wash / shampoo services - take-outs and dry detangling only for hair-care appointments.',
 ] as const
+
+/** Photo / video consent copy shown at checkout */
+export const MEDIA_CONSENT = {
+  title: 'Photos & videos of your style',
+  summary:
+    'I sometimes take photos or short videos of finished work for my portfolio, Instagram, and TikTok so others can see my styles.',
+  yesLabel:
+    'Yes — I allow photos and videos of my finished style to be used for Rolake’s portfolio and social media.',
+  noLabel:
+    'No — please do not photograph or video me, or share images of my appointment.',
+  note: 'Your face can be cropped out or angled away if you prefer — just tell me at the appointment. You can change your mind later by texting.',
+} as const
+
+export function formatMediaConsentLabel(consent?: boolean): string {
+  if (consent === true) return 'Yes — photos/videos OK'
+  if (consent === false) return 'No — do not share'
+  return 'Not answered'
+}
 
 /** Discount program config — amounts & toggles live here */
 export const FIRST_TIME_ENABLED = true
@@ -681,12 +703,14 @@ export const SERVICES: Service[] = [
   {
     id: 'french-plaits',
     name: 'French Plaits',
-    price: 85,
+    price: 70,
     durationHours: 2.5,
     description:
-      'Classic French plaits (braids) with clean parts - one, two, or more. Simple, neat, and timeless.',
-    minOffer: 65,
+      'Classic French plaits (braids) with clean parts - one, two, or more. Simple, neat, and timeless. Flat rate — no length or style add-ons.',
+    minOffer: 50,
     hasSizes: false,
+    hasLength: false,
+    allowedAddonIds: [],
   },
   {
     id: 'island-braids',
@@ -1128,6 +1152,13 @@ export function isCareService(service: Service): boolean {
   )
 }
 
+/** Whether length options apply (and can add to price). */
+export function serviceUsesLength(service: Service): boolean {
+  if (service.hasLength === false) return false
+  if (isCareService(service) || service.category === 'men') return false
+  return true
+}
+
 export function isCustomQuoteService(service: Service | undefined | null): boolean {
   return Boolean(service?.quoteOnly)
 }
@@ -1143,12 +1174,11 @@ export function calculateBookingTotal(
   const size = getSizeOption(sizeId)
   const length = getLengthOption(lengthId)
   const care = isCareService(service)
-  const men = service.category === 'men'
   const addonsTotal = care
     ? 0
     : styleAddonIds(addonIds).reduce((sum, id) => sum + (getAddon(id)?.price ?? 0), 0)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.priceAdjust ?? 0)
-  const lengthPrice = care || men ? 0 : (length?.price ?? 0)
+  const lengthPrice = serviceUsesLength(service) ? (length?.price ?? 0) : 0
   const mobileFee = mobileZoneId ? (getMobileZone(mobileZoneId)?.price ?? 0) : 0
   return Math.max(0, service.price + sizeAdjust + lengthPrice + addonsTotal + mobileFee)
 }
@@ -1161,7 +1191,7 @@ export function calculateBookingDurationHours(
 ): number {
   const size = getSizeOption(sizeId)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.durationAdjustHours ?? 0)
-  if (isCareService(service) || service.category === 'men') {
+  if (isCareService(service) || service.category === 'men' || !serviceUsesLength(service)) {
     return Math.max(0.5, service.durationHours + sizeAdjust)
   }
   const lengthExtra =

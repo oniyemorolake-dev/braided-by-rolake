@@ -8,6 +8,7 @@ import {
   formatSizeLabel,
   formatAddonsLabel,
   formatBraidBaseLabel,
+  formatMediaConsentLabel,
   formatMobileLabel,
   getLengthOption,
   getServiceById,
@@ -714,6 +715,10 @@ export function Admin() {
                   <div className="sm:col-span-2">
                     <span className="text-brand/45">Add-ons · </span>
                     {formatAddonsLabel(b.addonIds)}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-brand/45">Media · </span>
+                    {formatMediaConsentLabel(b.mediaConsent)}
                   </div>
                   <div className="sm:col-span-2">
                     <span className="text-brand/45">Location · </span>

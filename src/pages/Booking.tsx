@@ -21,6 +21,7 @@ import {
   formatBraidBaseLabel,
   formatDateLabel,
   formatDuration,
+  formatMediaConsentLabel,
   formatMobileLabel,
   formatPrice,
   formatPriceAdjust,
@@ -36,6 +37,8 @@ import {
   getAddonsForService,
   getServiceById,
   isCustomQuoteService,
+  MEDIA_CONSENT,
+  serviceUsesLength,
   withBraidBase,
   type Booking,
   type BraidBaseId,
@@ -103,6 +106,8 @@ export function Booking() {
   const [offerAmount, setOfferAmount] = useState('')
   const [note, setNote] = useState('')
   const [notesAccommodations, setNotesAccommodations] = useState('')
+  /** null until client picks yes/no */
+  const [mediaConsent, setMediaConsent] = useState<boolean | null>(null)
   const [inspoFile, setInspoFile] = useState<File | null>(null)
   const [inspoPreview, setInspoPreview] = useState<string | null>(null)
   const [inspoUploading, setInspoUploading] = useState(false)
@@ -273,6 +278,10 @@ export function Booking() {
       setError('Please add the area or address for mobile service.')
       return
     }
+    if (mediaConsent === null) {
+      setError('Please choose yes or no for photos & videos of your style.')
+      return
+    }
 
     setSubmitting(true)
     let inspoUrl: string | undefined
@@ -297,6 +306,7 @@ export function Booking() {
         mobileAddress: mobileService ? mobileAddress : undefined,
         inspoUrl,
         notesAccommodations: notesAccommodations.trim() || undefined,
+        mediaConsent,
       }
 
       let booking: Booking
@@ -740,11 +750,7 @@ export function Booking() {
             </div>
           )}
 
-          {!isQuote &&
-            service.category !== 'care' &&
-            service.category !== 'men' &&
-            service.id !== 'kids-take-out' &&
-            service.id !== 'kids-detangle' && (
+          {!isQuote && serviceUsesLength(service) && (
             <div>
             <label className="mb-2 block text-sm font-medium text-brand">Length (add-on)</label>
             <div className="space-y-2">
@@ -977,7 +983,7 @@ export function Booking() {
               <p>
                 {service.hasBraidBase && `${BRAID_BASE_OPTIONS.find((o) => o.id === braidBase)?.label} · `}
                 {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
-                {getLengthOption(lengthId)?.label}
+                {serviceUsesLength(service) && getLengthOption(lengthId)?.label}
                 {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
               </p>
             )}
@@ -1090,7 +1096,7 @@ export function Booking() {
               <p className="mt-1">
                 {service.hasBraidBase && `${BRAID_BASE_OPTIONS.find((o) => o.id === braidBase)?.label} · `}
                 {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
-                {getLengthOption(lengthId)?.label}
+                {serviceUsesLength(service) && getLengthOption(lengthId)?.label}
                 {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
               </p>
             )}
@@ -1353,6 +1359,48 @@ export function Booking() {
             />
           </div>
 
+          <fieldset className="rounded-2xl border border-brand/10 bg-lilac/40 px-4 py-4">
+            <legend className="px-1 font-display text-lg font-semibold text-brand">
+              {MEDIA_CONSENT.title}
+            </legend>
+            <p className="mt-1 text-sm leading-relaxed text-brand/70">{MEDIA_CONSENT.summary}</p>
+            <p className="mt-2 text-xs text-brand/55">{MEDIA_CONSENT.note}</p>
+            <div className="mt-4 space-y-2">
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                  mediaConsent === true
+                    ? 'border-accent bg-white text-brand'
+                    : 'border-brand/15 bg-white/70 text-brand/80 hover:border-accent/40'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="media-consent"
+                  className="mt-1"
+                  checked={mediaConsent === true}
+                  onChange={() => setMediaConsent(true)}
+                />
+                <span>{MEDIA_CONSENT.yesLabel}</span>
+              </label>
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                  mediaConsent === false
+                    ? 'border-accent bg-white text-brand'
+                    : 'border-brand/15 bg-white/70 text-brand/80 hover:border-accent/40'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="media-consent"
+                  className="mt-1"
+                  checked={mediaConsent === false}
+                  onChange={() => setMediaConsent(false)}
+                />
+                <span>{MEDIA_CONSENT.noLabel}</span>
+              </label>
+            </div>
+          </fieldset>
+
           <p className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
             By booking, you agree that hair will be <strong>pre-stretched</strong>, a{' '}
             <strong>
@@ -1370,7 +1418,7 @@ export function Booking() {
           <button
             type="submit"
             className="btn-primary w-full"
-            disabled={submitting || inspoUploading}
+            disabled={submitting || inspoUploading || mediaConsent === null}
           >
             {inspoUploading
               ? 'Uploading inspo…'
@@ -1481,14 +1529,14 @@ function ConfirmationView({
             <Row label="Base" value={formatBraidBaseLabel(live.addonIds)!} />
           )}
           {live.size && <Row label="Size" value={formatSizeLabel(live.size)} />}
-          {!isCustom && (
-            <>
-              <Row
-                label="Length"
-                value={getLengthOption(live.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
-              />
-              <Row label="Add-ons" value={formatAddonsLabel(live.addonIds)} />
-            </>
+          {!isCustom && service && serviceUsesLength(service) && (
+            <Row
+              label="Length"
+              value={getLengthOption(live.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
+            />
+          )}
+          {!isCustom && formatAddonsLabel(live.addonIds) !== 'None' && (
+            <Row label="Add-ons" value={formatAddonsLabel(live.addonIds)} />
           )}
           <Row label="Location" value={formatMobileLabel(live)} />
           {live.mobileService && live.mobileAddress && (
@@ -1563,6 +1611,15 @@ function ConfirmationView({
               }
             />
           )}
+          {live.notesAccommodations && (
+            <div className="rounded-xl bg-lilac/50 px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                Accommodations
+              </p>
+              <p className="mt-1 text-brand">{live.notesAccommodations}</p>
+            </div>
+          )}
+          <Row label="Media consent" value={formatMediaConsentLabel(live.mediaConsent)} />
           <Row label="Name" value={live.clientName} />
           {isConfirmed && !live.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">

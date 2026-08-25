@@ -4,6 +4,7 @@ import {
   CONFIG,
   formatAddonsLabel,
   formatBraidBaseLabel,
+  formatMediaConsentLabel,
   formatDateLabel,
   formatMobileLabel,
   formatPrice,
@@ -12,6 +13,7 @@ import {
   getLengthOption,
   getServiceById,
   isCustomQuoteService,
+  serviceUsesLength,
   type Booking,
 } from '../data'
 import { useBookings } from '../context/BookingContext'
@@ -147,15 +149,16 @@ export function Status() {
             <Row label="Base" value={formatBraidBaseLabel(booking.addonIds)!} />
           )}
           {booking.size && <Row label="Size" value={formatSizeLabel(booking.size)} />}
-          {!isCustom && (
-            <>
-              <Row
-                label="Length"
-                value={getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
-              />
-              <Row label="Add-ons" value={formatAddonsLabel(booking.addonIds)} />
-            </>
+          {!isCustom && service && serviceUsesLength(service) && (
+            <Row
+              label="Length"
+              value={getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
+            />
           )}
+          {!isCustom && formatAddonsLabel(booking.addonIds) !== 'None' && (
+            <Row label="Add-ons" value={formatAddonsLabel(booking.addonIds)} />
+          )}
+          <Row label="Media consent" value={formatMediaConsentLabel(booking.mediaConsent)} />
           <Row label="Location" value={formatMobileLabel(booking)} />
           {booking.mobileService && booking.mobileAddress && (
             <Row label="Address" value={booking.mobileAddress} />

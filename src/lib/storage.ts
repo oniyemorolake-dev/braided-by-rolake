@@ -28,6 +28,7 @@ interface BookingRow {
   deposit_paid: boolean | null
   inspo_url: string | null
   notes_accommodations: string | null
+  media_consent: boolean | null
   discount_code: string | null
   discount_amount: number | null
   discount_type: string | null
@@ -79,6 +80,7 @@ function rowToBooking(row: BookingRow): Booking {
     depositPaid: Boolean(row.deposit_paid),
     inspoUrl: row.inspo_url ?? undefined,
     notesAccommodations: row.notes_accommodations ?? undefined,
+    mediaConsent: row.media_consent == null ? undefined : Boolean(row.media_consent),
     discountCode: row.discount_code ?? undefined,
     discountAmount: row.discount_amount != null ? Number(row.discount_amount) : undefined,
     discountType: (row.discount_type as DiscountType | null) ?? undefined,
@@ -136,6 +138,7 @@ function patchToSnake(patch: Partial<Booking>): Record<string, unknown> {
   if (patch.depositPaid !== undefined) out.deposit_paid = patch.depositPaid
   if (patch.inspoUrl !== undefined) out.inspo_url = patch.inspoUrl
   if (patch.notesAccommodations !== undefined) out.notes_accommodations = patch.notesAccommodations
+  if (patch.mediaConsent !== undefined) out.media_consent = patch.mediaConsent
   if (patch.discountCode !== undefined) out.discount_code = patch.discountCode
   if (patch.discountAmount !== undefined) out.discount_amount = patch.discountAmount
   if (patch.discountType !== undefined) out.discount_type = patch.discountType
@@ -244,6 +247,7 @@ function bookingToRpcPayload(booking: Booking): Record<string, unknown> {
     deposit_paid: Boolean(booking.depositPaid),
     inspo_url: booking.inspoUrl ?? null,
     notes_accommodations: booking.notesAccommodations ?? null,
+    media_consent: Boolean(booking.mediaConsent),
     discount_code: booking.discountCode ?? null,
     discount_amount: booking.discountAmount ?? null,
     discount_type: booking.discountType ?? null,
