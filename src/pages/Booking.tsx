@@ -63,6 +63,10 @@ import {
 } from '../components/BookingNotices'
 import { PhotoSlot, servicePhotoPath } from '../components/PhotoSlot'
 import {
+  ServiceCategoryTabs,
+  type ServiceCategoryFilter,
+} from '../components/ServiceCategoryTabs'
+import {
   checkFirstTimeEligible,
   validateDiscountCode,
   type ValidateDiscountResult,
@@ -112,6 +116,7 @@ export function Booking() {
   const [inspoPreview, setInspoPreview] = useState<string | null>(null)
   const [inspoUploading, setInspoUploading] = useState(false)
   const [serviceQuery, setServiceQuery] = useState('')
+  const [serviceCategory, setServiceCategory] = useState<ServiceCategoryFilter>('all')
   const [discountCode, setDiscountCode] = useState('')
   const [discountResult, setDiscountResult] = useState<ValidateDiscountResult | null>(null)
   const [discountChecking, setDiscountChecking] = useState(false)
@@ -180,6 +185,15 @@ export function Booking() {
   )
   const serviceMatchCount =
     adultServices.length + menServices.length + careServices.length + kidsServices.length
+  const showAdultServices = serviceCategory === 'all' || serviceCategory === 'adult'
+  const showMenServices = serviceCategory === 'all' || serviceCategory === 'men'
+  const showCareServices = serviceCategory === 'all' || serviceCategory === 'care'
+  const showKidsServices = serviceCategory === 'all' || serviceCategory === 'kids'
+  const visibleServiceCount =
+    (showAdultServices ? adultServices.filter((s) => !isCustomQuoteService(s)).length : 0) +
+    (showMenServices ? menServices.length : 0) +
+    (showCareServices ? careServices.length : 0) +
+    (showKidsServices ? kidsServices.length : 0)
 
   function selectService(id: string) {
     setServiceId(id)
@@ -500,19 +514,32 @@ export function Booking() {
               type="search"
               value={serviceQuery}
               onChange={(e) => setServiceQuery(e.target.value)}
-              placeholder="Search knotless, crochet, kids…"
+              placeholder="Search knotless, men’s, crochet, kids…"
               autoComplete="off"
             />
-            {serviceQuery.trim() && (
+            <div className="mt-3">
+              <ServiceCategoryTabs
+                value={serviceCategory}
+                onChange={setServiceCategory}
+                counts={{
+                  all: serviceMatchCount,
+                  adult: adultServices.filter((s) => !isCustomQuoteService(s)).length,
+                  men: menServices.length,
+                  care: careServices.length,
+                  kids: kidsServices.length,
+                }}
+              />
+            </div>
+            {(serviceQuery.trim() || serviceCategory !== 'all') && (
               <p className="mt-2 text-xs text-brand/55">
-                {serviceMatchCount === 0
-                  ? 'No styles match — try another word.'
-                  : `${serviceMatchCount} style${serviceMatchCount === 1 ? '' : 's'}`}
+                {visibleServiceCount === 0
+                  ? 'No styles match — try another category or clear search.'
+                  : `${visibleServiceCount} style${visibleServiceCount === 1 ? '' : 's'} shown`}
               </p>
             )}
           </div>
 
-          {adultServices.length > 0 && (
+          {showAdultServices && adultServices.length > 0 && (
           <div>
             <p className="mb-3 text-sm font-medium text-brand">Adult styles</p>
             <div className="space-y-3">
@@ -544,9 +571,9 @@ export function Booking() {
           </div>
           )}
 
-          {menServices.length > 0 && (
+          {showMenServices && menServices.length > 0 && (
           <div>
-            <p className="mb-1 text-sm font-medium text-brand">Men’s braids</p>
+            <p className="mb-1 text-sm font-medium text-brand">Men’s styles</p>
             <p className="mb-3 text-xs text-brand/55">
               Cornrows, plaits, twists, and design styles for men.
             </p>
@@ -577,7 +604,7 @@ export function Booking() {
           </div>
           )}
 
-          {careServices.length > 0 && (
+          {showCareServices && careServices.length > 0 && (
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Hair care &amp; finishing</p>
             <p className="mb-3 text-xs text-brand/55">
@@ -610,7 +637,7 @@ export function Booking() {
           </div>
           )}
 
-          {kidsServices.length > 0 && (
+          {showKidsServices && kidsServices.length > 0 && (
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Kids · ages 4–11</p>
             <p className="mb-3 text-xs text-brand/55">
@@ -643,15 +670,18 @@ export function Booking() {
           </div>
           )}
 
-          {serviceQuery.trim() && serviceMatchCount === 0 && (
+          {visibleServiceCount === 0 && (
             <div className="card-soft px-4 py-8 text-center text-sm text-brand/60">
-              <p>No styles found for “{serviceQuery.trim()}”.</p>
+              <p>No styles found.</p>
               <button
                 type="button"
                 className="mt-3 text-sm font-semibold text-accent"
-                onClick={() => setServiceQuery('')}
+                onClick={() => {
+                  setServiceQuery('')
+                  setServiceCategory('all')
+                }}
               >
-                Clear search
+                Clear filters
               </button>
             </div>
           )}

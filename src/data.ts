@@ -841,7 +841,7 @@ export const SERVICES: Service[] = [
     featured: true,
   },
 
-  // --- Men’s braids ---
+  // --- Men’s styles ---
   {
     id: 'men-cornrows',
     name: 'Men’s Cornrows',
@@ -876,6 +876,7 @@ export const SERVICES: Service[] = [
     minOffer: 60,
     hasSizes: false,
     category: 'men',
+    featured: true,
   },
   {
     id: 'men-design',
@@ -885,6 +886,18 @@ export const SERVICES: Service[] = [
     description:
       'Custom design cornrows or tribal-inspired parts. Bring inspo or describe the pattern you want.',
     minOffer: 75,
+    hasSizes: false,
+    category: 'men',
+    featured: true,
+  },
+  {
+    id: 'men-ponytail',
+    name: 'Men’s Cornrow Ponytail',
+    price: 75,
+    durationHours: 1.75,
+    description:
+      'Cornrows gathered into a tidy ponytail — clean finish for everyday or events.',
+    minOffer: 60,
     hasSizes: false,
     category: 'men',
     featured: true,

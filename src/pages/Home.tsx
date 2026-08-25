@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CONFIG, SERVICES } from '../data'
+import { CONFIG, SERVICES, getMenServices } from '../data'
 import { ServiceCard } from '../components/ServiceCard'
 import { ReviewsSection } from '../components/ReviewsSection'
 
@@ -22,6 +22,7 @@ export function Home() {
   const featured = SERVICES.filter(
     (s) => s.featured && s.category !== 'care' && s.category !== 'kids' && s.category !== 'men',
   ).slice(0, 6)
+  const menStyles = getMenServices()
 
   return (
     <div>
@@ -61,8 +62,7 @@ export function Home() {
             Featured styles
           </h2>
           <p className="mt-2 text-brand/65">
-            Popular protective looks for adults and kids (ages 4–11). Every style includes a tidy
-            finish and aftercare tips.
+            Popular protective looks. Every style includes a tidy finish and aftercare tips.
           </p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -76,6 +76,32 @@ export function Home() {
           </Link>
         </div>
       </section>
+
+      {/* Men’s styles */}
+      {menStyles.length > 0 && (
+        <section className="bg-lilac/50">
+          <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+            <div className="mb-8 text-center sm:text-left">
+              <h2 className="font-display text-3xl font-semibold text-brand sm:text-4xl">
+                Men’s styles
+              </h2>
+              <p className="mt-2 text-brand/65">
+                Cornrows, plaits, twists, and design work for men — clean parts and solid hold.
+              </p>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              {menStyles.map((s) => (
+                <ServiceCard key={s.id} service={s} compact />
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <Link to="/services" className="text-sm font-semibold text-accent hover:underline">
+                See all men’s styles →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Why book */}
       <section className="bg-lilac/60">

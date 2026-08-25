@@ -18,9 +18,15 @@ import {
 } from '../data'
 import { filterServices } from '../lib/serviceSearch'
 import { ServiceCard } from '../components/ServiceCard'
+import {
+  ServiceCategoryTabs,
+  type ServiceCategoryFilter,
+} from '../components/ServiceCategoryTabs'
 
 export function Services() {
   const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<ServiceCategoryFilter>('all')
+
   const adult = useMemo(() => filterServices(getAdultServices(), query), [query])
   const men = useMemo(() => filterServices(getMenServices(), query), [query])
   const care = useMemo(() => filterServices(getCareServices(), query), [query])
@@ -28,19 +34,29 @@ export function Services() {
   const totalMatches = adult.length + men.length + care.length + kids.length
   const searching = query.trim().length > 0
 
+  const showAdult = category === 'all' || category === 'adult'
+  const showMen = category === 'all' || category === 'men'
+  const showCare = category === 'all' || category === 'care'
+  const showKids = category === 'all' || category === 'kids'
+
+  const visibleCount =
+    (showAdult ? adult.length : 0) +
+    (showMen ? men.length : 0) +
+    (showCare ? care.length : 0) +
+    (showKids ? kids.length : 0)
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
       <div className="max-w-2xl">
         <h1 className="font-display text-4xl font-semibold text-brand sm:text-5xl">Services</h1>
         <p className="mt-3 text-brand/70">
-          Calgary-aligned pricing (medium / shoulder base). Choose size, length, and add-ons when you
-          book. Mobile travel available. Deposit via Interac e-Transfer: {formatPrice(10)} under{' '}
-          {formatPrice(50)}, {formatPrice(15)} under {formatPrice(60)}, otherwise{' '}
-          {formatPrice(CONFIG.depositAmount)}. {CONFIG.taxNote}
+          Pick a category or search by name — no need to scroll the whole list. Deposit via Interac
+          e-Transfer: {formatPrice(10)} under {formatPrice(50)}, {formatPrice(15)} under{' '}
+          {formatPrice(60)}, otherwise {formatPrice(CONFIG.depositAmount)}. {CONFIG.taxNote}
         </p>
       </div>
 
-      <div className="mt-6">
+      <div className="sticky top-[3.75rem] z-30 -mx-4 mt-6 border-b border-brand/10 bg-white/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
         <label className="mb-1.5 block text-sm font-medium text-brand" htmlFor="service-search">
           Search services
         </label>
@@ -50,19 +66,115 @@ export function Services() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Try knotless, crochet, kids, take out…"
+          placeholder="Try knotless, men’s, crochet, kids, take out…"
           autoComplete="off"
         />
-        {searching && (
+        <div className="mt-3">
+          <ServiceCategoryTabs
+            value={category}
+            onChange={setCategory}
+            counts={{
+              all: totalMatches,
+              adult: adult.length,
+              men: men.length,
+              care: care.length,
+              kids: kids.length,
+            }}
+          />
+        </div>
+        {(searching || category !== 'all') && (
           <p className="mt-2 text-xs text-brand/55">
-            {totalMatches === 0
-              ? 'No services match that search.'
-              : `${totalMatches} service${totalMatches === 1 ? '' : 's'} found`}
+            {visibleCount === 0
+              ? 'No services match — try another category or clear search.'
+              : `${visibleCount} service${visibleCount === 1 ? '' : 's'} shown`}
           </p>
         )}
       </div>
 
-      <div className="mt-8 grid gap-3 rounded-2xl bg-lilac/60 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
+      {showAdult && adult.length > 0 && (
+        <section id="adult-styles" className="mt-10 scroll-mt-36">
+          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+            Adult styles
+          </h2>
+          <p className="mt-1 text-sm text-brand/60">Protective styles for teens and adults.</p>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {adult.map((s) => (
+              <ServiceCard key={s.id} service={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showMen && men.length > 0 && (
+        <section id="mens-styles" className="mt-14 scroll-mt-36">
+          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+            Men’s styles
+          </h2>
+          <p className="mt-1 text-sm text-brand/60">
+            Cornrows, plaits, twists, and design styles for men — clean parts and solid hold.
+          </p>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {men.map((s) => (
+              <ServiceCard key={s.id} service={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showCare && care.length > 0 && (
+        <section id="hair-care" className="mt-14 scroll-mt-36">
+          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+            Hair care &amp; finishing
+          </h2>
+          <p className="mt-1 text-sm text-brand/60">
+            Take-outs, no-wash detangling, gel styles, and basic straighten — no shampoo/wash
+            services.
+          </p>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {care.map((s) => (
+              <ServiceCard key={s.id} service={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showKids && kids.length > 0 && (
+        <section id="kids-styles" className="mt-14 scroll-mt-36">
+          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+            Kids · ages 4–11
+          </h2>
+          <p className="mt-1 text-sm text-brand/60">
+            Gentle, age-appropriate styles with soft tension and patient hands. Perfect for school,
+            sports, and special days. Kids take-outs and no-wash detangling available too.
+          </p>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {kids.map((s) => (
+              <ServiceCard key={s.id} service={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {visibleCount === 0 && (
+        <div className="card-soft mt-12 px-6 py-12 text-center">
+          <p className="font-display text-2xl text-brand">No matches</p>
+          <p className="mt-2 text-sm text-brand/60">
+            Try another word or category, or clear filters to see all services.
+          </p>
+          <button
+            type="button"
+            className="btn-secondary mt-4"
+            onClick={() => {
+              setQuery('')
+              setCategory('all')
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
+
+      <div className="mt-14 grid gap-3 rounded-2xl bg-lilac/60 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">Sizes</p>
           <p className="mt-1 text-sm text-brand/75">
@@ -116,82 +228,6 @@ export function Services() {
           ))}
         </ul>
       </section>
-
-      {adult.length > 0 && (
-        <section className="mt-12">
-          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
-            Adult styles
-          </h2>
-          <p className="mt-1 text-sm text-brand/60">Protective styles for teens and adults.</p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {adult.map((s) => (
-              <ServiceCard key={s.id} service={s} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {men.length > 0 && (
-        <section className="mt-14">
-          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
-            Men’s braids
-          </h2>
-          <p className="mt-1 text-sm text-brand/60">
-            Cornrows, plaits, twists, and design styles for men — clean parts and solid hold.
-          </p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {men.map((s) => (
-              <ServiceCard key={s.id} service={s} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {care.length > 0 && (
-        <section className="mt-14">
-          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
-            Hair care &amp; finishing
-          </h2>
-          <p className="mt-1 text-sm text-brand/60">
-            Take-outs, no-wash detangling, gel styles, and basic straighten — no shampoo/wash
-            services.
-          </p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {care.map((s) => (
-              <ServiceCard key={s.id} service={s} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {kids.length > 0 && (
-        <section className="mt-14">
-          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
-            Kids · ages 4–11
-          </h2>
-          <p className="mt-1 text-sm text-brand/60">
-            Gentle, age-appropriate styles with soft tension and patient hands. Perfect for school,
-            sports, and special days. Kids take-outs and no-wash detangling available too.
-          </p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {kids.map((s) => (
-              <ServiceCard key={s.id} service={s} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {searching && totalMatches === 0 && (
-        <div className="card-soft mt-12 px-6 py-12 text-center">
-          <p className="font-display text-2xl text-brand">No matches</p>
-          <p className="mt-2 text-sm text-brand/60">
-            Try another word, or clear the search to see all services.
-          </p>
-          <button type="button" className="btn-secondary mt-4" onClick={() => setQuery('')}>
-            Clear search
-          </button>
-        </div>
-      )}
 
       <div className="mt-10 space-y-3 rounded-2xl bg-lilac/70 px-4 py-5 text-sm text-brand/70">
         <p className="font-semibold text-brand">Before you book</p>
