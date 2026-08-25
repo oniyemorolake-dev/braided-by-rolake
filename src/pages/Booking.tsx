@@ -750,9 +750,11 @@ export function Booking() {
             <div>
               <label className="mb-2 block text-sm font-medium text-brand">Size</label>
               <p className="mb-2 text-xs text-brand/55">
-                {service.category === 'men'
-                  ? 'Small, smedium, medium, or large — included in the listed price (smaller parts take a bit longer).'
-                  : 'Smaller sizes take longer (more braids). Large is quicker and costs less.'}
+                {service.id === 'cornrows' || service.id === 'men-cornrows'
+                  ? 'Medium is the base price. Small and smedium cost more; large is $10 less.'
+                  : service.category === 'men'
+                    ? 'Small, smedium, medium, or large — included in the listed price (smaller parts take a bit longer).'
+                    : 'Smaller sizes take longer (more braids). Large is quicker and costs less.'}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {getSizeOptionsForService(service).map((opt) => (
@@ -770,10 +772,8 @@ export function Booking() {
                     <p
                       className={`text-xs ${size === opt.id ? 'text-white/80' : 'text-brand/50'}`}
                     >
-                      {service.category === 'men' || opt.priceAdjust === 0
-                        ? service.category === 'men'
-                          ? 'Included'
-                          : 'Base price'
+                      {opt.priceAdjust === 0
+                        ? 'Included'
                         : opt.priceAdjust > 0
                           ? `+$${opt.priceAdjust}`
                           : `−$${Math.abs(opt.priceAdjust)}`}

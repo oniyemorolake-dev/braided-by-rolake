@@ -239,19 +239,19 @@ export const POLICIES = [
 
 /** Photo / video consent copy shown at checkout */
 export const MEDIA_CONSENT = {
-  title: 'Photos & videos of your style',
+  title: 'Photo & video consent',
   summary:
-    'I sometimes take photos or short videos of finished work for my portfolio, Instagram, and TikTok so others can see my styles.',
+    'Do you consent to photos or short videos of your hair / finished style being taken during or after your appointment? These may be used for my portfolio, Instagram, and TikTok.',
   yesLabel:
-    'Yes — I allow photos and videos of my finished style to be used for Rolake’s portfolio and social media.',
+    'Yes — I consent / don’t mind photos and videos of my hair and finished style for portfolio and social media.',
   noLabel:
-    'No — please do not photograph or video me, or share images of my appointment.',
+    'No — please do not take or share photos or videos of my hair or appointment.',
   note: 'Your face can be cropped out or angled away if you prefer — just tell me at the appointment. You can change your mind later by texting.',
 } as const
 
 export function formatMediaConsentLabel(consent?: boolean): string {
-  if (consent === true) return 'Yes — photos/videos OK'
-  if (consent === false) return 'No — do not share'
+  if (consent === true) return 'Yes — hair photos/videos OK'
+  if (consent === false) return 'No — do not photograph'
   return 'Not answered'
 }
 
@@ -377,7 +377,8 @@ export const SIZE_OPTIONS: SizeOption[] = [
 ]
 
 /**
- * Men’s parting sizes — included in the listed price (no size upcharge).
+ * Men’s parting sizes — included in the listed price (no size upcharge),
+ * except cornrows which use CORNROW_SIZE_OPTIONS.
  * Smaller still takes a bit longer.
  */
 export const MEN_SIZE_OPTIONS: SizeOption[] = [
@@ -403,6 +404,34 @@ export const MEN_SIZE_OPTIONS: SizeOption[] = [
     id: 'large',
     label: 'Large',
     priceAdjust: 0,
+    durationAdjustHours: -0.35,
+  },
+]
+
+/** Cornrows / men’s cornrows — medium included; small/smedium more; large $10 less */
+export const CORNROW_SIZE_OPTIONS: SizeOption[] = [
+  {
+    id: 'small',
+    label: 'Small',
+    priceAdjust: 25,
+    durationAdjustHours: 0.75,
+  },
+  {
+    id: 'smedium',
+    label: 'Smedium',
+    priceAdjust: 15,
+    durationAdjustHours: 0.35,
+  },
+  {
+    id: 'medium',
+    label: 'Medium',
+    priceAdjust: 0,
+    durationAdjustHours: 0,
+  },
+  {
+    id: 'large',
+    label: 'Large',
+    priceAdjust: -10,
     durationAdjustHours: -0.35,
   },
 ]
@@ -648,9 +677,9 @@ export const SERVICES: Service[] = [
     price: 90,
     durationHours: 2,
     description:
-      'Neat feed-in cornrows that grow gracefully into your length. Great for workouts, travel, or a sleek look.',
+      'Neat feed-in cornrows that grow gracefully into your length. Great for workouts, travel, or a sleek look. Medium size included — small/smedium cost more, large is $10 less.',
     minOffer: 70,
-    hasSizes: false,
+    hasSizes: true,
   },
   {
     id: 'half-cornrows',
@@ -886,7 +915,7 @@ export const SERVICES: Service[] = [
     price: 70,
     durationHours: 1.5,
     description:
-      'Clean straight-back or design cornrows sized for men’s hairlines. Choose parting size; add extensions + length if you want extra hair.',
+      'Clean straight-back or design cornrows sized for men’s hairlines. Medium included — small/smedium cost more, large is $10 less. Add extensions if you want braiding hair.',
     minOffer: 55,
     hasSizes: true,
     hasLength: true,
@@ -1182,11 +1211,15 @@ export function getMenServices(): Service[] {
 }
 
 export function getSizeOptionsForService(service: Service): SizeOption[] {
-  return service.category === 'men' ? MEN_SIZE_OPTIONS : SIZE_OPTIONS
+  if (service.id === 'cornrows' || service.id === 'men-cornrows') {
+    return CORNROW_SIZE_OPTIONS
+  }
+  if (service.category === 'men') return MEN_SIZE_OPTIONS
+  return SIZE_OPTIONS
 }
 
 export function getSizeOption(id: BraidSizeId, service?: Service): SizeOption | undefined {
-  const list = service?.category === 'men' ? MEN_SIZE_OPTIONS : SIZE_OPTIONS
+  const list = service ? getSizeOptionsForService(service) : SIZE_OPTIONS
   return list.find((s) => s.id === id)
 }
 
