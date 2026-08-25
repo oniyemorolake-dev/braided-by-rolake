@@ -819,11 +819,11 @@ export const SERVICES: Service[] = [
   {
     id: 'gel-styles',
     name: 'Gel Styles',
-    price: 80,
+    price: 90,
     durationHours: 1.5,
     description:
-      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included for this service. From $80.',
-    minOffer: 65,
+      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included for this service. From $90.',
+    minOffer: 75,
     hasSizes: false,
     category: 'care',
     featured: true,
