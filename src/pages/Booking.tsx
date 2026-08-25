@@ -575,7 +575,7 @@ export function Booking() {
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Men’s styles</p>
             <p className="mb-3 text-xs text-brand/55">
-              Size options + optional extensions &amp; length for men.
+              Size included · optional extensions (length only if chosen).
             </p>
             <div className="space-y-3">
               {menServices.map((s) => (
@@ -784,17 +784,94 @@ export function Booking() {
             </div>
           )}
 
-          {!isQuote && serviceUsesLength(service) && (
+          {!isQuote && service.category === 'men' && (
+            <div className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-brand">Extensions</label>
+                <p className="mb-2 text-xs text-brand/55">
+                  Size is above. Only other choice: extensions or not.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLengthId('shoulder')
+                      setAddonIds((prev) => prev.filter((id) => id !== 'extensions'))
+                    }}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${
+                      !addonIds.includes('extensions')
+                        ? 'border-accent bg-lilac text-brand'
+                        : 'border-brand/15 bg-white hover:border-accent/40'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">No extension</p>
+                    <p className="mt-0.5 text-xs text-brand/50">Natural hair only</p>
+                    <p className="mt-1 text-xs font-semibold text-accent">Incl.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddonIds((prev) =>
+                        prev.includes('extensions') ? prev : [...prev, 'extensions'],
+                      )
+                    }}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${
+                      addonIds.includes('extensions')
+                        ? 'border-accent bg-lilac text-brand'
+                        : 'border-brand/15 bg-white hover:border-accent/40'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">With extensions</p>
+                    <p className="mt-0.5 text-xs text-brand/50">Braiding hair added</p>
+                    <p className="mt-1 text-xs font-semibold text-accent">+$15</p>
+                  </button>
+                </div>
+              </div>
+
+              {addonIds.includes('extensions') && (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-brand">
+                    Extension length
+                  </label>
+                  <p className="mb-2 text-xs text-brand/55">
+                    How long should the extensions be?
+                  </p>
+                  <div className="space-y-2">
+                    {LENGTH_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setLengthId(opt.id)}
+                        className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
+                          lengthId === opt.id
+                            ? 'border-accent bg-lilac text-brand'
+                            : 'border-brand/15 bg-white hover:border-accent/40'
+                        }`}
+                      >
+                        <span>
+                          <span className="block text-sm font-semibold">
+                            {opt.id === 'shoulder' ? 'Same length' : opt.label}
+                          </span>
+                          <span className="text-xs text-brand/50">
+                            {opt.id === 'shoulder'
+                              ? 'About the same as natural hair length'
+                              : opt.description}
+                          </span>
+                        </span>
+                        <span className="text-sm font-semibold text-accent">
+                          {opt.price === 0 ? 'Incl.' : formatPriceAdjust(opt.price)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isQuote && serviceUsesLength(service) && service.category !== 'men' && (
             <div>
-            <label className="mb-2 block text-sm font-medium text-brand">
-              {service.category === 'men' ? 'Extension length' : 'Length (add-on)'}
-            </label>
-            {service.category === 'men' && (
-              <p className="mb-2 text-xs text-brand/55">
-                For styles with braiding hair / extensions. Skip if you&apos;re using natural hair
-                only.
-              </p>
-            )}
+            <label className="mb-2 block text-sm font-medium text-brand">Length (add-on)</label>
             <div className="space-y-2">
               {LENGTH_OPTIONS.map((opt) => (
                 <button
@@ -822,6 +899,7 @@ export function Booking() {
 
           {!isQuote &&
             service.category !== 'care' &&
+            service.category !== 'men' &&
             service.id !== 'kids-take-out' &&
             service.id !== 'kids-detangle' &&
             getAddonsForService(service).length > 0 && (
@@ -882,8 +960,9 @@ export function Booking() {
 
           {service.category === 'men' && (
             <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
-              <strong>Size</strong> (small → large) is included in the listed price. Optional:{' '}
-              <strong>With extensions</strong> (+$15) and extension length if you want longer hair.
+              Men&apos;s bookings: choose <strong>size</strong>, then <strong>No extension</strong>{' '}
+              or <strong>With extensions</strong>. Extension length only appears if you want
+              extensions.
             </p>
           )}
 
@@ -1025,7 +1104,16 @@ export function Booking() {
               <p>
                 {service.hasBraidBase && `${BRAID_BASE_OPTIONS.find((o) => o.id === braidBase)?.label} · `}
                 {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
-                {serviceUsesLength(service) && getLengthOption(lengthId)?.label}
+                {serviceUsesLength(service) &&
+                  (service.category === 'men' &&
+                  lengthId === 'shoulder' &&
+                  !addonIds.includes('extensions')
+                    ? 'No extension'
+                    : service.category === 'men' &&
+                        lengthId === 'shoulder' &&
+                        addonIds.includes('extensions')
+                      ? 'With extensions'
+                      : getLengthOption(lengthId)?.label)}
                 {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
               </p>
             )}
@@ -1138,7 +1226,16 @@ export function Booking() {
               <p className="mt-1">
                 {service.hasBraidBase && `${BRAID_BASE_OPTIONS.find((o) => o.id === braidBase)?.label} · `}
                 {service.hasSizes !== false && `${formatSizeLabel(size)} · `}
-                {serviceUsesLength(service) && getLengthOption(lengthId)?.label}
+                {serviceUsesLength(service) &&
+                  (service.category === 'men' &&
+                  lengthId === 'shoulder' &&
+                  !addonIds.includes('extensions')
+                    ? 'No extension'
+                    : service.category === 'men' &&
+                        lengthId === 'shoulder' &&
+                        addonIds.includes('extensions')
+                      ? 'With extensions'
+                      : getLengthOption(lengthId)?.label)}
                 {addonIds.length > 0 && ` · ${formatAddonsLabel(addonIds)}`}
               </p>
             )}

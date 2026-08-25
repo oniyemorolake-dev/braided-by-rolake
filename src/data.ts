@@ -890,7 +890,7 @@ export const SERVICES: Service[] = [
     minOffer: 55,
     hasSizes: true,
     hasLength: true,
-    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
+    allowedAddonIds: ['extensions'],
     category: 'men',
     featured: true,
   },
@@ -904,7 +904,7 @@ export const SERVICES: Service[] = [
     minOffer: 70,
     hasSizes: true,
     hasLength: true,
-    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
+    allowedAddonIds: ['extensions'],
     category: 'men',
     featured: true,
   },
@@ -918,7 +918,7 @@ export const SERVICES: Service[] = [
     minOffer: 60,
     hasSizes: true,
     hasLength: true,
-    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
+    allowedAddonIds: ['extensions'],
     category: 'men',
     featured: true,
   },
@@ -932,7 +932,7 @@ export const SERVICES: Service[] = [
     minOffer: 75,
     hasSizes: true,
     hasLength: true,
-    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
+    allowedAddonIds: ['extensions'],
     category: 'men',
     featured: true,
   },
@@ -946,7 +946,7 @@ export const SERVICES: Service[] = [
     minOffer: 60,
     hasSizes: true,
     hasLength: true,
-    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
+    allowedAddonIds: ['extensions'],
     category: 'men',
     featured: true,
   },
@@ -1246,7 +1246,12 @@ export function calculateBookingTotal(
     ? 0
     : styleAddonIds(addonIds).reduce((sum, id) => sum + (getAddon(id)?.price ?? 0), 0)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.priceAdjust ?? 0)
-  const lengthPrice = serviceUsesLength(service) ? (length?.price ?? 0) : 0
+  const menWithExtensions =
+    service.category === 'men' && styleAddonIds(addonIds).includes('extensions')
+  const lengthPrice =
+    serviceUsesLength(service) && (service.category !== 'men' || menWithExtensions)
+      ? (length?.price ?? 0)
+      : 0
   const mobileFee = mobileZoneId ? (getMobileZone(mobileZoneId)?.price ?? 0) : 0
   return Math.max(0, service.price + sizeAdjust + lengthPrice + addonsTotal + mobileFee)
 }
@@ -1260,6 +1265,9 @@ export function calculateBookingDurationHours(
   const size = getSizeOption(sizeId, service)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.durationAdjustHours ?? 0)
   if (isCareService(service) || !serviceUsesLength(service)) {
+    return Math.max(0.5, service.durationHours + sizeAdjust)
+  }
+  if (service.category === 'men' && !styleAddonIds(addonIds).includes('extensions')) {
     return Math.max(0.5, service.durationHours + sizeAdjust)
   }
   const lengthExtra =

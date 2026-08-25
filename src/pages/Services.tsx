@@ -111,8 +111,8 @@ export function Services() {
             Men’s styles
           </h2>
           <p className="mt-1 text-sm text-brand/60">
-            Cornrows, plaits, twists, and design styles for men — size (small–large) included in the
-            listed price; optional extensions +$15 and length.
+            Cornrows, plaits, twists, and design styles for men — size included; optional extensions
+            (+$15) with length only if extensions are chosen.
           </p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {men.map((s) => (
