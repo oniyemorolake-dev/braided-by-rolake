@@ -376,6 +376,37 @@ export const SIZE_OPTIONS: SizeOption[] = [
   },
 ]
 
+/**
+ * Men’s parting sizes — included in the listed price (no size upcharge).
+ * Smaller still takes a bit longer.
+ */
+export const MEN_SIZE_OPTIONS: SizeOption[] = [
+  {
+    id: 'small',
+    label: 'Small',
+    priceAdjust: 0,
+    durationAdjustHours: 0.75,
+  },
+  {
+    id: 'smedium',
+    label: 'Smedium',
+    priceAdjust: 0,
+    durationAdjustHours: 0.35,
+  },
+  {
+    id: 'medium',
+    label: 'Medium',
+    priceAdjust: 0,
+    durationAdjustHours: 0,
+  },
+  {
+    id: 'large',
+    label: 'Large',
+    priceAdjust: 0,
+    durationAdjustHours: -0.35,
+  },
+]
+
 /** Box vs knotless base — used by French Curls (and similar) */
 export const BRAID_BASE_OPTIONS: {
   id: BraidBaseId
@@ -483,6 +514,13 @@ export const ADDONS: Addon[] = [
     name: 'Styling gel',
     price: 10,
     description: 'Extra gel for edges, parts, and a smoother finish on your style',
+  },
+  {
+    id: 'extensions',
+    name: 'With extensions',
+    price: 15,
+    description:
+      'Extra when braiding hair / extensions are added. Bring your own hair or ask ahead. Choose extension length if you want longer than natural.',
   },
 ]
 
@@ -848,9 +886,11 @@ export const SERVICES: Service[] = [
     price: 70,
     durationHours: 1.5,
     description:
-      'Clean straight-back or design cornrows sized for men’s hairlines. Neat parts, solid hold.',
+      'Clean straight-back or design cornrows sized for men’s hairlines. Choose parting size; add extensions + length if you want extra hair.',
     minOffer: 55,
-    hasSizes: false,
+    hasSizes: true,
+    hasLength: true,
+    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
     category: 'men',
     featured: true,
   },
@@ -860,9 +900,11 @@ export const SERVICES: Service[] = [
     price: 90,
     durationHours: 2.5,
     description:
-      'Box braids or classic plaits for men — protective, tidy, and easy to maintain. Parting size discussed at booking.',
+      'Box braids or classic plaits for men — protective and tidy. Pick size, and add extensions + length when using braiding hair.',
     minOffer: 70,
-    hasSizes: false,
+    hasSizes: true,
+    hasLength: true,
+    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
     category: 'men',
     featured: true,
   },
@@ -872,9 +914,11 @@ export const SERVICES: Service[] = [
     price: 80,
     durationHours: 2,
     description:
-      'Two-strand twists for men — soft parts, comfortable tension, everyday wear.',
+      'Two-strand twists for men — soft parts, comfortable tension. Size options available; add extensions + length if needed.',
     minOffer: 60,
-    hasSizes: false,
+    hasSizes: true,
+    hasLength: true,
+    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
     category: 'men',
     featured: true,
   },
@@ -884,9 +928,11 @@ export const SERVICES: Service[] = [
     price: 95,
     durationHours: 2.5,
     description:
-      'Custom design cornrows or tribal-inspired parts. Bring inspo or describe the pattern you want.',
+      'Custom design cornrows or tribal-inspired parts. Choose size; add extensions + length for longer looks. Bring inspo.',
     minOffer: 75,
-    hasSizes: false,
+    hasSizes: true,
+    hasLength: true,
+    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
     category: 'men',
     featured: true,
   },
@@ -896,9 +942,11 @@ export const SERVICES: Service[] = [
     price: 75,
     durationHours: 1.75,
     description:
-      'Cornrows gathered into a tidy ponytail — clean finish for everyday or events.',
+      'Cornrows gathered into a tidy ponytail. Pick size; add extensions + length for a fuller or longer finish.',
     minOffer: 60,
-    hasSizes: false,
+    hasSizes: true,
+    hasLength: true,
+    allowedAddonIds: ['extensions', 'styling-gel', 'beads', 'color-mix'],
     category: 'men',
     featured: true,
   },
@@ -1133,8 +1181,13 @@ export function getMenServices(): Service[] {
   return SERVICES.filter((s) => s.category === 'men')
 }
 
-export function getSizeOption(id: BraidSizeId): SizeOption | undefined {
-  return SIZE_OPTIONS.find((s) => s.id === id)
+export function getSizeOptionsForService(service: Service): SizeOption[] {
+  return service.category === 'men' ? MEN_SIZE_OPTIONS : SIZE_OPTIONS
+}
+
+export function getSizeOption(id: BraidSizeId, service?: Service): SizeOption | undefined {
+  const list = service?.category === 'men' ? MEN_SIZE_OPTIONS : SIZE_OPTIONS
+  return list.find((s) => s.id === id)
 }
 
 export function getLengthOption(id: LengthId): LengthOption | undefined {
@@ -1168,7 +1221,9 @@ export function isCareService(service: Service): boolean {
 /** Whether length options apply (and can add to price). */
 export function serviceUsesLength(service: Service): boolean {
   if (service.hasLength === false) return false
-  if (isCareService(service) || service.category === 'men') return false
+  if (isCareService(service)) return false
+  // Men’s styles: length only when explicitly enabled (extension length)
+  if (service.category === 'men') return service.hasLength === true
   return true
 }
 
@@ -1184,7 +1239,7 @@ export function calculateBookingTotal(
   mobileZoneId?: MobileZoneId | null,
 ): number {
   if (isCustomQuoteService(service)) return 0
-  const size = getSizeOption(sizeId)
+  const size = getSizeOption(sizeId, service)
   const length = getLengthOption(lengthId)
   const care = isCareService(service)
   const addonsTotal = care
@@ -1202,15 +1257,16 @@ export function calculateBookingDurationHours(
   lengthId: LengthId = 'shoulder',
   addonIds: string[] = [],
 ): number {
-  const size = getSizeOption(sizeId)
+  const size = getSizeOption(sizeId, service)
   const sizeAdjust = service.hasSizes === false ? 0 : (size?.durationAdjustHours ?? 0)
-  if (isCareService(service) || service.category === 'men' || !serviceUsesLength(service)) {
+  if (isCareService(service) || !serviceUsesLength(service)) {
     return Math.max(0.5, service.durationHours + sizeAdjust)
   }
   const lengthExtra =
     lengthId === 'waist' ? 0.5 : lengthId === 'butt' ? 1 : lengthId === 'midback' ? 0.25 : 0
   const addonExtra =
     (styleAddonIds(addonIds).includes('boho') ? 0.5 : 0) +
+    (styleAddonIds(addonIds).includes('extensions') ? 0.5 : 0) +
     (styleAddonIds(addonIds).includes('curls') ? -0.5 : 0)
   return Math.max(1, service.durationHours + sizeAdjust + lengthExtra + addonExtra)
 }

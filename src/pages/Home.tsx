@@ -86,7 +86,8 @@ export function Home() {
                 Men’s styles
               </h2>
               <p className="mt-2 text-brand/65">
-                Cornrows, plaits, twists, and design work for men — clean parts and solid hold.
+                Cornrows, plaits, twists, and design work for men — size options, plus extras with
+                extensions when you want them.
               </p>
             </div>
             <div className="grid gap-5 sm:grid-cols-2">

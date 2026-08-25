@@ -7,7 +7,6 @@ import {
   MOBILE_BASE,
   MOBILE_ZONES,
   POLICIES,
-  SIZE_OPTIONS,
   calculateBookingDurationHours,
   calculateBookingTotal,
   FIRST_TIME_CODE,
@@ -36,6 +35,7 @@ import {
   getMobileZone,
   getAddonsForService,
   getServiceById,
+  getSizeOptionsForService,
   isCustomQuoteService,
   MEDIA_CONSENT,
   serviceUsesLength,
@@ -575,7 +575,7 @@ export function Booking() {
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Men’s styles</p>
             <p className="mb-3 text-xs text-brand/55">
-              Cornrows, plaits, twists, and design styles for men.
+              Size options + optional extensions &amp; length for men.
             </p>
             <div className="space-y-3">
               {menServices.map((s) => (
@@ -750,10 +750,12 @@ export function Booking() {
             <div>
               <label className="mb-2 block text-sm font-medium text-brand">Size</label>
               <p className="mb-2 text-xs text-brand/55">
-                Smaller sizes take longer (more braids). Large is quicker and costs less.
+                {service.category === 'men'
+                  ? 'Small, smedium, medium, or large — included in the listed price (smaller parts take a bit longer).'
+                  : 'Smaller sizes take longer (more braids). Large is quicker and costs less.'}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {SIZE_OPTIONS.map((opt) => (
+                {getSizeOptionsForService(service).map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
@@ -768,8 +770,10 @@ export function Booking() {
                     <p
                       className={`text-xs ${size === opt.id ? 'text-white/80' : 'text-brand/50'}`}
                     >
-                      {opt.priceAdjust === 0
-                        ? 'Base price'
+                      {service.category === 'men' || opt.priceAdjust === 0
+                        ? service.category === 'men'
+                          ? 'Included'
+                          : 'Base price'
                         : opt.priceAdjust > 0
                           ? `+$${opt.priceAdjust}`
                           : `−$${Math.abs(opt.priceAdjust)}`}
@@ -782,7 +786,15 @@ export function Booking() {
 
           {!isQuote && serviceUsesLength(service) && (
             <div>
-            <label className="mb-2 block text-sm font-medium text-brand">Length (add-on)</label>
+            <label className="mb-2 block text-sm font-medium text-brand">
+              {service.category === 'men' ? 'Extension length' : 'Length (add-on)'}
+            </label>
+            {service.category === 'men' && (
+              <p className="mb-2 text-xs text-brand/55">
+                For styles with braiding hair / extensions. Skip if you&apos;re using natural hair
+                only.
+              </p>
+            )}
             <div className="space-y-2">
               {LENGTH_OPTIONS.map((opt) => (
                 <button
@@ -870,8 +882,8 @@ export function Booking() {
 
           {service.category === 'men' && (
             <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
-              Men&apos;s styles are priced as listed. Optional add-ons (like styling gel) are below —
-              extension length doesn&apos;t apply.
+              <strong>Size</strong> (small → large) is included in the listed price. Optional:{' '}
+              <strong>With extensions</strong> (+$15) and extension length if you want longer hair.
             </p>
           )}
 
