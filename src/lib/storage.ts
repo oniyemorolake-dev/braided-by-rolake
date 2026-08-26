@@ -1,4 +1,4 @@
-import { CONFIG, type AttendanceTag, type Booking, type BookingStatus, type BookingType, type BraidSizeId, type DiscountType, type LengthId, type MobileZoneId } from '../data'
+import { CONFIG, type AttendanceTag, type Booking, type BookingStatus, type BookingType, type BraidSizeId, type DiscountType, type LengthId, type MediaFacePreference, type MobileZoneId } from '../data'
 import { isSupabaseConfigured, supabase } from './supabase'
 
 const STORAGE_KEY = 'bbr_bookings_v1'
@@ -29,6 +29,7 @@ interface BookingRow {
   inspo_url: string | null
   notes_accommodations: string | null
   media_consent: boolean | null
+  media_face: string | null
   booker_name: string | null
   booker_phone: string | null
   booker_email: string | null
@@ -89,6 +90,7 @@ function rowToBooking(row: BookingRow): Booking {
     inspoUrl: row.inspo_url ?? undefined,
     notesAccommodations: row.notes_accommodations ?? undefined,
     mediaConsent: row.media_consent == null ? undefined : Boolean(row.media_consent),
+    mediaFace: (row.media_face as MediaFacePreference | null) ?? undefined,
     bookerName: row.booker_name ?? undefined,
     bookerPhone: row.booker_phone ?? undefined,
     bookerEmail: row.booker_email ?? undefined,
@@ -155,6 +157,7 @@ function patchToSnake(patch: Partial<Booking>): Record<string, unknown> {
   if (patch.inspoUrl !== undefined) out.inspo_url = patch.inspoUrl
   if (patch.notesAccommodations !== undefined) out.notes_accommodations = patch.notesAccommodations
   if (patch.mediaConsent !== undefined) out.media_consent = patch.mediaConsent
+  if (patch.mediaFace !== undefined) out.media_face = patch.mediaFace || null
   if (patch.bookerName !== undefined) out.booker_name = patch.bookerName
   if (patch.bookerPhone !== undefined) out.booker_phone = patch.bookerPhone
   if (patch.bookerEmail !== undefined) out.booker_email = patch.bookerEmail
@@ -278,6 +281,7 @@ function bookingToRpcPayload(booking: Booking): Record<string, unknown> {
     inspo_url: booking.inspoUrl ?? null,
     notes_accommodations: booking.notesAccommodations ?? null,
     media_consent: Boolean(booking.mediaConsent),
+    media_face: booking.mediaFace ?? null,
     booker_name: booking.bookerName ?? null,
     booker_phone: booking.bookerPhone ?? null,
     booker_email: booking.bookerEmail ?? null,

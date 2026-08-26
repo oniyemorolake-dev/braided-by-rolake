@@ -21,6 +21,8 @@ export type MobileZoneId = 'nw' | 'sw' | 'ne' | 'se' | 'nearby' | 'extended'
 export type DiscountType = 'review' | 'first_time' | 'referral' | 'loyalty' | 'promo'
 export type DiscountStatus = 'unused' | 'used' | 'disabled'
 export type AttendanceTag = 'on_time' | 'late' | 'no_show'
+/** Face preference when media consent is yes */
+export type MediaFacePreference = 'ok' | 'no_face' | 'either'
 
 export interface Service {
   id: string
@@ -108,6 +110,8 @@ export interface Booking {
   notesAccommodations?: string
   /** Client allows photos/videos of finished work for portfolio & social */
   mediaConsent?: boolean
+  /** When consenting: face OK, no face, or either is fine */
+  mediaFace?: MediaFacePreference
   /** Person who booked (when different from client getting braids) */
   bookerName?: string
   bookerPhone?: string
@@ -485,19 +489,38 @@ export function formatAttendanceLabel(tag?: AttendanceTag): string {
 /** Photo / video consent copy shown at checkout */
 export const MEDIA_CONSENT = {
   title: 'Photo & video consent',
+  requiredLabel: 'Required',
   summary:
-    'Do you consent to photos or short videos of your hair / finished style being taken during or after your appointment? These may be used for my portfolio, Instagram, and TikTok.',
-  yesLabel:
-    'Yes — I consent / don’t mind photos and videos of my hair and finished style for portfolio and social media.',
-  noLabel:
-    'No — please do not take or share photos or videos of my hair or appointment.',
-  note: 'Your face can be cropped out or angled away if you prefer — just tell me at the appointment. You can change your mind later by texting.',
+    'May I take photos or short videos of your finished hair / style for my portfolio, Instagram, and TikTok?',
+  yesLabel: 'Yes — you can photograph / film my hair and finished style for portfolio & social.',
+  noLabel: 'No — please do not take or share photos or videos of my hair or appointment.',
+  faceTitle: 'About your face in the photos / videos',
+  faceSummary: 'If you said yes, tell me how you want your face handled:',
+  faceOk: 'Face is OK — I’m fine appearing in photos / videos.',
+  faceNo: 'No face — hair / style only (crop, angle away, or blur my face).',
+  faceEither: 'Either is fine — your call at the appointment.',
+  note: 'You can change your mind later by texting. Consent is required to finish booking.',
 } as const
 
-export function formatMediaConsentLabel(consent?: boolean): string {
-  if (consent === true) return 'Yes — hair photos/videos OK'
+export function formatMediaConsentLabel(
+  consent?: boolean,
+  face?: MediaFacePreference,
+): string {
   if (consent === false) return 'No — do not photograph'
+  if (consent === true) {
+    if (face === 'ok') return 'Yes — face OK'
+    if (face === 'no_face') return 'Yes — hair only, no face'
+    if (face === 'either') return 'Yes — face either way'
+    return 'Yes — hair photos/videos OK'
+  }
   return 'Not answered'
+}
+
+export function formatMediaFaceLabel(face?: MediaFacePreference): string {
+  if (face === 'ok') return 'Face OK'
+  if (face === 'no_face') return 'No face — hair only'
+  if (face === 'either') return 'Either is fine'
+  return '—'
 }
 
 /** Discount program config — amounts & toggles live here */

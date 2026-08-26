@@ -698,7 +698,7 @@ function BookingDetailSheet({
             value={getLengthOption(booking.lengthId ?? 'shoulder')?.label ?? 'Shoulder'}
           />
           <Row label="Add-ons" value={formatAddonsLabel(booking.addonIds)} />
-          <Row label="Media consent" value={formatMediaConsentLabel(booking.mediaConsent)} />
+          <Row label="Media consent" value={formatMediaConsentLabel(booking.mediaConsent, booking.mediaFace)} />
           <Row
             label="Location"
             value={`${formatMobileLabel(booking)}${booking.mobileAddress ? ` — ${booking.mobileAddress}` : ''}`}

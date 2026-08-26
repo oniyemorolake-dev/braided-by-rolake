@@ -25,6 +25,7 @@ import {
   type BraidSizeId,
   type DiscountType,
   type LengthId,
+  type MediaFacePreference,
   type MobileZoneId,
 } from '../data'
 import {
@@ -66,6 +67,8 @@ export interface CreateListedInput {
   notesAccommodations?: string
   /** true = allow portfolio/social photos & videos; false = do not share */
   mediaConsent: boolean
+  /** Required when mediaConsent is true */
+  mediaFace?: MediaFacePreference
   /** Optional: person booking for someone else */
   bookerName?: string
   bookerPhone?: string
@@ -251,6 +254,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
       mediaConsent: Boolean(input.mediaConsent),
+      mediaFace: input.mediaConsent ? input.mediaFace : undefined,
       bookerName: input.bookerName?.trim() || undefined,
       bookerPhone: input.bookerPhone?.trim() || undefined,
       bookerEmail: input.bookerEmail?.trim() || undefined,
@@ -310,6 +314,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
       mediaConsent: Boolean(input.mediaConsent),
+      mediaFace: input.mediaConsent ? input.mediaFace : undefined,
       bookerName: input.bookerName?.trim() || undefined,
       bookerPhone: input.bookerPhone?.trim() || undefined,
       bookerEmail: input.bookerEmail?.trim() || undefined,
@@ -362,6 +367,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
       mediaConsent: Boolean(input.mediaConsent),
+      mediaFace: input.mediaConsent ? input.mediaFace : undefined,
       bookerName: input.bookerName?.trim() || undefined,
       bookerPhone: input.bookerPhone?.trim() || undefined,
       bookerEmail: input.bookerEmail?.trim() || undefined,

@@ -45,6 +45,7 @@ import {
   type BraidBaseId,
   type BraidSizeId,
   type LengthId,
+  type MediaFacePreference,
   type MobileZoneId,
 } from '../data'
 import { useBookings } from '../context/BookingContext'
@@ -120,6 +121,7 @@ export function Booking() {
   const [notesAccommodations, setNotesAccommodations] = useState('')
   /** null until client picks yes/no */
   const [mediaConsent, setMediaConsent] = useState<boolean | null>(null)
+  const [mediaFace, setMediaFace] = useState<MediaFacePreference | null>(null)
   const [inspoFile, setInspoFile] = useState<File | null>(null)
   const [inspoPreview, setInspoPreview] = useState<string | null>(null)
   const [inspoUploading, setInspoUploading] = useState(false)
@@ -320,7 +322,13 @@ export function Booking() {
       return
     }
     if (mediaConsent === null) {
-      setError('Please choose yes or no for photos & videos of your style.')
+      setError('Please answer the photo & video consent question (required).')
+      document.getElementById('media-consent')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    if (mediaConsent === true && mediaFace === null) {
+      setError('Please choose how you want your face handled in photos / videos.')
+      document.getElementById('media-consent')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
 
@@ -348,6 +356,7 @@ export function Booking() {
         inspoUrl,
         notesAccommodations: notesAccommodations.trim() || undefined,
         mediaConsent,
+        mediaFace: mediaConsent ? mediaFace ?? undefined : undefined,
         bookerName: bookingForOther ? bookerName.trim() : undefined,
         bookerPhone: bookingForOther ? bookerPhone.trim() : undefined,
         bookerEmail: bookingForOther ? bookerEmail.trim() : undefined,
@@ -1629,47 +1638,103 @@ export function Booking() {
             />
           </div>
 
-          <fieldset className="rounded-2xl border border-brand/10 bg-lilac/40 px-4 py-4">
-            <legend className="px-1 font-display text-lg font-semibold text-brand">
-              {MEDIA_CONSENT.title}
-            </legend>
-            <p className="mt-1 text-sm leading-relaxed text-brand/70">{MEDIA_CONSENT.summary}</p>
-            <p className="mt-2 text-xs text-brand/55">{MEDIA_CONSENT.note}</p>
-            <div className="mt-4 space-y-2">
+          <div
+            id="media-consent"
+            className="scroll-mt-24 space-y-4 rounded-2xl border-2 border-accent/40 bg-white px-4 py-5 shadow-sm sm:px-5"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="font-display text-xl font-semibold text-brand sm:text-2xl">
+                  {MEDIA_CONSENT.title}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-brand/70">{MEDIA_CONSENT.summary}</p>
+              </div>
+              <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                {MEDIA_CONSENT.requiredLabel}
+              </span>
+            </div>
+
+            <div className="space-y-2" role="radiogroup" aria-label="Photo and video consent">
               <label
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 px-3 py-3.5 text-sm transition ${
                   mediaConsent === true
-                    ? 'border-accent bg-white text-brand'
-                    : 'border-brand/15 bg-white/70 text-brand/80 hover:border-accent/40'
+                    ? 'border-accent bg-lilac/60 text-brand'
+                    : 'border-brand/15 bg-blush text-brand/80 hover:border-accent/40'
                 }`}
               >
                 <input
                   type="radio"
                   name="media-consent"
-                  className="mt-1"
+                  className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
                   checked={mediaConsent === true}
-                  onChange={() => setMediaConsent(true)}
+                  onChange={() => {
+                    setMediaConsent(true)
+                    setError('')
+                  }}
                 />
-                <span>{MEDIA_CONSENT.yesLabel}</span>
+                <span className="font-medium leading-snug">{MEDIA_CONSENT.yesLabel}</span>
               </label>
               <label
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 px-3 py-3.5 text-sm transition ${
                   mediaConsent === false
-                    ? 'border-accent bg-white text-brand'
-                    : 'border-brand/15 bg-white/70 text-brand/80 hover:border-accent/40'
+                    ? 'border-accent bg-lilac/60 text-brand'
+                    : 'border-brand/15 bg-blush text-brand/80 hover:border-accent/40'
                 }`}
               >
                 <input
                   type="radio"
                   name="media-consent"
-                  className="mt-1"
+                  className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
                   checked={mediaConsent === false}
-                  onChange={() => setMediaConsent(false)}
+                  onChange={() => {
+                    setMediaConsent(false)
+                    setMediaFace(null)
+                    setError('')
+                  }}
                 />
-                <span>{MEDIA_CONSENT.noLabel}</span>
+                <span className="font-medium leading-snug">{MEDIA_CONSENT.noLabel}</span>
               </label>
             </div>
-          </fieldset>
+
+            {mediaConsent === true && (
+              <div className="rounded-xl border border-brand/10 bg-lilac/50 px-3 py-4 sm:px-4">
+                <p className="text-sm font-semibold text-brand">{MEDIA_CONSENT.faceTitle}</p>
+                <p className="mt-1 text-xs leading-relaxed text-brand/60">{MEDIA_CONSENT.faceSummary}</p>
+                <div className="mt-3 space-y-2" role="radiogroup" aria-label="Face preference">
+                  {(
+                    [
+                      ['ok', MEDIA_CONSENT.faceOk],
+                      ['no_face', MEDIA_CONSENT.faceNo],
+                      ['either', MEDIA_CONSENT.faceEither],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <label
+                      key={value}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                        mediaFace === value
+                          ? 'border-accent bg-white text-brand'
+                          : 'border-brand/10 bg-white/80 text-brand/80 hover:border-accent/40'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="media-face"
+                        className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
+                        checked={mediaFace === value}
+                        onChange={() => {
+                          setMediaFace(value)
+                          setError('')
+                        }}
+                      />
+                      <span className="leading-snug">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-brand/50">{MEDIA_CONSENT.note}</p>
+          </div>
 
           <p className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
             By booking, you agree to the{' '}
@@ -1694,7 +1759,12 @@ export function Booking() {
           <button
             type="submit"
             className="btn-primary w-full"
-            disabled={submitting || inspoUploading || mediaConsent === null}
+            disabled={
+              submitting ||
+              inspoUploading ||
+              mediaConsent === null ||
+              (mediaConsent === true && mediaFace === null)
+            }
           >
             {inspoUploading
               ? 'Uploading inspo…'
@@ -1706,6 +1776,12 @@ export function Booking() {
                     ? 'Confirm booking'
                     : 'Send offer'}
           </button>
+          {(mediaConsent === null || (mediaConsent === true && mediaFace === null)) && (
+            <p className="text-center text-xs text-brand/55">
+              Answer the photo &amp; video consent
+              {mediaConsent === true ? ' and face preference' : ''} above to continue.
+            </p>
+          )}
         </form>
       )}
     </div>
@@ -1895,7 +1971,7 @@ function ConfirmationView({
               <p className="mt-1 text-brand">{live.notesAccommodations}</p>
             </div>
           )}
-          <Row label="Media consent" value={formatMediaConsentLabel(live.mediaConsent)} />
+          <Row label="Media consent" value={formatMediaConsentLabel(live.mediaConsent, live.mediaFace)} />
           <Row label="Name" value={live.clientName} />
           {isConfirmed && !live.mobileService && (
             <div className="rounded-xl bg-lilac/70 px-3 py-3">

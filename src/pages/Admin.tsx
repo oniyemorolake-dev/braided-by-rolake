@@ -744,7 +744,7 @@ export function Admin() {
                   </div>
                   <div className="sm:col-span-2">
                     <span className="text-brand/45">Media · </span>
-                    {formatMediaConsentLabel(b.mediaConsent)}
+                    {formatMediaConsentLabel(b.mediaConsent, b.mediaFace)}
                   </div>
                   <div className="sm:col-span-2">
                     <span className="text-brand/45">Location · </span>
