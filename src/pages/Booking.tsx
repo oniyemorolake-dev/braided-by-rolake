@@ -1,8 +1,9 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   BRAID_BASE_OPTIONS,
   CONFIG,
+  ISSUE_CONTACT_HOURS,
   LENGTH_OPTIONS,
   MOBILE_BASE,
   MOBILE_ZONES,
@@ -48,6 +49,7 @@ import {
 } from '../data'
 import { useBookings } from '../context/BookingContext'
 import { getAvailableSlots, getBookableDates } from '../lib/scheduling'
+import { loadScheduleBlocks, type ScheduleBlock } from '../lib/scheduleBlocks'
 import {
   INSPO_ACCEPT,
   uploadInspoFile,
@@ -107,6 +109,12 @@ export function Booking() {
   const [clientName, setClientName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [bookingForOther, setBookingForOther] = useState(false)
+  const [isGift, setIsGift] = useState(false)
+  const [bookerName, setBookerName] = useState('')
+  const [bookerPhone, setBookerPhone] = useState('')
+  const [bookerEmail, setBookerEmail] = useState('')
+  const [giftMessage, setGiftMessage] = useState('')
   const [offerAmount, setOfferAmount] = useState('')
   const [note, setNote] = useState('')
   const [notesAccommodations, setNotesAccommodations] = useState('')
@@ -125,6 +133,17 @@ export function Booking() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<Booking | null>(null)
+  const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void loadScheduleBlocks().then((list) => {
+      if (!cancelled) setScheduleBlocks(list)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const service = serviceId ? getServiceById(serviceId) : undefined
   const isQuote = isCustomQuoteService(service)
@@ -159,13 +178,13 @@ export function Booking() {
 
   const bookableDates = useMemo(() => {
     if (!serviceForSchedule) return []
-    return getBookableDates(serviceForSchedule, bookings)
-  }, [serviceForSchedule, bookings])
+    return getBookableDates(serviceForSchedule, bookings, 60, scheduleBlocks)
+  }, [serviceForSchedule, bookings, scheduleBlocks])
 
   const slots = useMemo(() => {
     if (!serviceForSchedule || !date) return []
-    return getAvailableSlots(date, serviceForSchedule, bookings)
-  }, [serviceForSchedule, date, bookings])
+    return getAvailableSlots(date, serviceForSchedule, bookings, undefined, scheduleBlocks)
+  }, [serviceForSchedule, date, bookings, scheduleBlocks])
 
   const adultServices = useMemo(
     () => filterServices(getAdultServices(), serviceQuery),
@@ -281,7 +300,15 @@ export function Booking() {
       return
     }
     if (!clientName.trim() || !phone.trim() || !email.trim()) {
-      setError('Please fill in your name, phone, and email.')
+      setError(
+        bookingForOther
+          ? 'Please fill in the recipient’s name, phone, and email.'
+          : 'Please fill in your name, phone, and email.',
+      )
+      return
+    }
+    if (bookingForOther && (!bookerName.trim() || !bookerPhone.trim() || !bookerEmail.trim())) {
+      setError('Please fill in your (the booker’s) name, phone, and email.')
       return
     }
     if (mobileService && !mobileZoneId) {
@@ -321,6 +348,11 @@ export function Booking() {
         inspoUrl,
         notesAccommodations: notesAccommodations.trim() || undefined,
         mediaConsent,
+        bookerName: bookingForOther ? bookerName.trim() : undefined,
+        bookerPhone: bookingForOther ? bookerPhone.trim() : undefined,
+        bookerEmail: bookingForOther ? bookerEmail.trim() : undefined,
+        isGift: bookingForOther && isGift,
+        giftMessage: bookingForOther && isGift ? giftMessage.trim() || undefined : undefined,
       }
 
       let booking: Booking
@@ -1079,6 +1111,11 @@ export function Booking() {
             {POLICIES.map((p) => (
               <li key={p}>• {p}</li>
             ))}
+            <li>
+              <Link to="/policies" className="font-medium text-accent hover:underline">
+                Read full FAQ &amp; policies →
+              </Link>
+            </li>
           </ul>
 
           <button
@@ -1311,8 +1348,98 @@ export function Booking() {
             </>
           )}
 
+          <div className="space-y-3 rounded-2xl border border-brand/10 bg-white px-4 py-4">
+            <label className="flex cursor-pointer items-start gap-3 text-sm text-brand/80">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={bookingForOther}
+                onChange={(e) => {
+                  setBookingForOther(e.target.checked)
+                  if (!e.target.checked) {
+                    setIsGift(false)
+                    setGiftMessage('')
+                  }
+                }}
+              />
+              <span>
+                <span className="font-semibold text-brand">Booking for someone else</span>
+                <span className="mt-0.5 block text-xs text-brand/55">
+                  Gift an appointment or book for a friend/family — you’ll be the booker, they get the
+                  braids.
+                </span>
+              </span>
+            </label>
+            {bookingForOther && (
+              <label className="flex cursor-pointer items-start gap-3 text-sm text-brand/80">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={isGift}
+                  onChange={(e) => setIsGift(e.target.checked)}
+                />
+                <span>
+                  <span className="font-semibold text-brand">This is a gift</span>
+                  <span className="mt-0.5 block text-xs text-brand/55">
+                    Optional message is saved on the booking for Rolake to see.
+                  </span>
+                </span>
+              </label>
+            )}
+          </div>
+
+          {bookingForOther && (
+            <div className="space-y-3 rounded-2xl border border-accent/20 bg-lilac/40 p-4">
+              <p className="text-sm font-semibold text-brand">Your details (booker)</p>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-brand">Your name</label>
+                <input
+                  className="input-field"
+                  value={bookerName}
+                  onChange={(e) => setBookerName(e.target.value)}
+                  required={bookingForOther}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-brand">Your phone</label>
+                <input
+                  className="input-field"
+                  type="tel"
+                  value={bookerPhone}
+                  onChange={(e) => setBookerPhone(e.target.value)}
+                  required={bookingForOther}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-brand">Your email</label>
+                <input
+                  className="input-field"
+                  type="email"
+                  value={bookerEmail}
+                  onChange={(e) => setBookerEmail(e.target.value)}
+                  required={bookingForOther}
+                />
+              </div>
+              {isGift && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-brand">
+                    Gift message <span className="font-normal text-brand/45">(optional)</span>
+                  </label>
+                  <textarea
+                    className="input-field min-h-[72px] resize-y"
+                    placeholder="e.g. Happy birthday — enjoy your braids!"
+                    value={giftMessage}
+                    onChange={(e) => setGiftMessage(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-brand">Full name</label>
+            <label className="mb-1.5 block text-sm font-medium text-brand">
+              {bookingForOther ? 'Recipient full name (who’s getting braided)' : 'Full name'}
+            </label>
             <input
               className="input-field"
               value={clientName}
@@ -1322,7 +1449,9 @@ export function Booking() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-brand">Phone</label>
+            <label className="mb-1.5 block text-sm font-medium text-brand">
+              {bookingForOther ? 'Recipient phone' : 'Phone'}
+            </label>
             <input
               className="input-field"
               type="tel"
@@ -1333,7 +1462,9 @@ export function Booking() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-brand">Email</label>
+            <label className="mb-1.5 block text-sm font-medium text-brand">
+              {bookingForOther ? 'Recipient email' : 'Email'}
+            </label>
             <input
               className="input-field"
               type="email"
@@ -1541,13 +1672,19 @@ export function Booking() {
           </fieldset>
 
           <p className="rounded-xl bg-lilac/60 px-3 py-2.5 text-xs leading-relaxed text-brand/70">
-            By booking, you agree that hair will be <strong>pre-stretched</strong>, a{' '}
+            By booking, you agree to the{' '}
+            <Link to="/policies" className="font-semibold text-accent underline">
+              studio policies
+            </Link>
+            : hair will be <strong>pre-stretched</strong>, a{' '}
             <strong>
               {formatPrice(getDepositForPrice(isQuote ? 0 : payableTotal || total))} e-Transfer
               deposit
             </strong>{' '}
-            is required to secure the appointment (confirmed once received; balance paid in person),
-            and extensions are provided <strong>only on request</strong>.
+            is required (confirmed once received; balance paid in person),{' '}
+            <strong>zero tolerance for abuse</strong>, and style concerns must be reported within{' '}
+            <strong>{ISSUE_CONTACT_HOURS} hours</strong>. Extensions are provided{' '}
+            <strong>only on request</strong>.
           </p>
 
           {error && (

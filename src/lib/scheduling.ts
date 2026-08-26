@@ -4,6 +4,10 @@ import {
   type Booking,
   type Service,
 } from '../data'
+import {
+  slotConflictsWithBlocks,
+  type ScheduleBlock,
+} from './scheduleBlocks'
 
 /** Convert "HH:mm" to minutes from midnight */
 export function slotToMinutes(slot: string): number {
@@ -59,6 +63,7 @@ export function getAvailableSlots(
   service: Service,
   bookings: Booking[],
   excludeBookingId?: string,
+  blocks: ScheduleBlock[] = [],
 ): string[] {
   const day = new Date(date + 'T12:00:00')
   const dow = day.getDay()
@@ -98,7 +103,12 @@ export function getAvailableSlots(
     )
     if (conflicts) continue
 
-    slots.push(minutesToSlot(start))
+    const slot = minutesToSlot(start)
+    if (slotConflictsWithBlocks(date, slot, durationMins + CONFIG.bufferMinutes, blocks)) {
+      continue
+    }
+
+    slots.push(slot)
   }
 
   return slots
@@ -108,8 +118,9 @@ export function canFitServiceOnDate(
   date: string,
   service: Service,
   bookings: Booking[],
+  blocks: ScheduleBlock[] = [],
 ): boolean {
-  return getAvailableSlots(date, service, bookings).length > 0
+  return getAvailableSlots(date, service, bookings, undefined, blocks).length > 0
 }
 
 /** Next N bookable calendar dates (YYYY-MM-DD) that have at least one slot */
@@ -117,6 +128,7 @@ export function getBookableDates(
   service: Service,
   bookings: Booking[],
   daysAhead = 60,
+  blocks: ScheduleBlock[] = [],
 ): string[] {
   const dates: string[] = []
   const start = new Date()
@@ -126,7 +138,7 @@ export function getBookableDates(
     const d = new Date(start)
     d.setDate(start.getDate() + i)
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    if (canFitServiceOnDate(iso, service, bookings)) {
+    if (canFitServiceOnDate(iso, service, bookings, blocks)) {
       dates.push(iso)
     }
   }

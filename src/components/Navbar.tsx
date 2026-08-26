@@ -7,37 +7,39 @@ const links = [
   { to: '/services', label: 'Services' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/reviews', label: 'Reviews' },
+  { to: '/care', label: 'Care' },
   { to: '/about', label: 'About' },
+  { to: '/policies', label: 'Policies' },
 ]
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-brand/10 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-brand/8 bg-blush/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <img
             src="/logo.png"
             alt="Braided by Rolake"
-            className="h-11 w-11 rounded-full object-cover shadow-sm ring-2 ring-lilac"
+            className="h-11 w-11 rounded-full object-cover shadow-sm ring-2 ring-lilac-deep/80"
           />
           <span className="font-display text-lg font-semibold leading-tight text-brand sm:text-xl">
             Braided by Rolake
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                `rounded-full px-3.5 py-2 text-sm font-medium transition ${
+                `rounded-full px-3 py-2 text-sm font-medium transition ${
                   isActive
                     ? 'bg-lilac text-brand'
-                    : 'text-brand/70 hover:bg-lilac/60 hover:text-brand'
+                    : 'text-brand/65 hover:bg-lilac/70 hover:text-brand'
                 }`
               }
             >
@@ -51,7 +53,7 @@ export function Navbar() {
 
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand/15 text-brand md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand/12 bg-white/70 text-brand lg:hidden"
           aria-label={open ? 'Close menu' : 'Open menu'}
           onClick={() => setOpen((v) => !v)}
         >
@@ -68,7 +70,7 @@ export function Navbar() {
       </div>
 
       {open && (
-        <div className="border-t border-brand/10 bg-white px-4 pb-4 pt-2 md:hidden">
+        <div className="border-t border-brand/8 bg-blush/95 px-4 pb-4 pt-2 lg:hidden">
           <nav className="flex flex-col gap-1">
             {links.map((l) => (
               <NavLink
@@ -96,7 +98,7 @@ export function Navbar() {
               href={CONFIG.instagramUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 px-4 py-2 text-center text-sm text-brand/60"
+              className="mt-1 px-4 py-2 text-center text-sm text-brand/55"
             >
               {CONFIG.instagram}
             </a>

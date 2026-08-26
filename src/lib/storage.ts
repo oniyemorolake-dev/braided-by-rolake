@@ -1,4 +1,4 @@
-import { CONFIG, type Booking, type BookingStatus, type BookingType, type BraidSizeId, type DiscountType, type LengthId, type MobileZoneId } from '../data'
+import { CONFIG, type AttendanceTag, type Booking, type BookingStatus, type BookingType, type BraidSizeId, type DiscountType, type LengthId, type MobileZoneId } from '../data'
 import { isSupabaseConfigured, supabase } from './supabase'
 
 const STORAGE_KEY = 'bbr_bookings_v1'
@@ -29,6 +29,14 @@ interface BookingRow {
   inspo_url: string | null
   notes_accommodations: string | null
   media_consent: boolean | null
+  booker_name: string | null
+  booker_phone: string | null
+  booker_email: string | null
+  is_gift: boolean | null
+  gift_message: string | null
+  attendance_tag: string | null
+  deposit_reminder_sent_at: string | null
+  day_before_reminder_sent_at: string | null
   discount_code: string | null
   discount_amount: number | null
   discount_type: string | null
@@ -81,6 +89,14 @@ function rowToBooking(row: BookingRow): Booking {
     inspoUrl: row.inspo_url ?? undefined,
     notesAccommodations: row.notes_accommodations ?? undefined,
     mediaConsent: row.media_consent == null ? undefined : Boolean(row.media_consent),
+    bookerName: row.booker_name ?? undefined,
+    bookerPhone: row.booker_phone ?? undefined,
+    bookerEmail: row.booker_email ?? undefined,
+    isGift: Boolean(row.is_gift),
+    giftMessage: row.gift_message ?? undefined,
+    attendanceTag: (row.attendance_tag as AttendanceTag | null) ?? undefined,
+    depositReminderSentAt: row.deposit_reminder_sent_at ?? undefined,
+    dayBeforeReminderSentAt: row.day_before_reminder_sent_at ?? undefined,
     discountCode: row.discount_code ?? undefined,
     discountAmount: row.discount_amount != null ? Number(row.discount_amount) : undefined,
     discountType: (row.discount_type as DiscountType | null) ?? undefined,
@@ -139,6 +155,20 @@ function patchToSnake(patch: Partial<Booking>): Record<string, unknown> {
   if (patch.inspoUrl !== undefined) out.inspo_url = patch.inspoUrl
   if (patch.notesAccommodations !== undefined) out.notes_accommodations = patch.notesAccommodations
   if (patch.mediaConsent !== undefined) out.media_consent = patch.mediaConsent
+  if (patch.bookerName !== undefined) out.booker_name = patch.bookerName
+  if (patch.bookerPhone !== undefined) out.booker_phone = patch.bookerPhone
+  if (patch.bookerEmail !== undefined) out.booker_email = patch.bookerEmail
+  if (patch.isGift !== undefined) out.is_gift = patch.isGift
+  if (patch.giftMessage !== undefined) out.gift_message = patch.giftMessage
+  if (patch.attendanceTag !== undefined) {
+    out.attendance_tag = patch.attendanceTag || null
+  }
+  if (patch.depositReminderSentAt !== undefined) {
+    out.deposit_reminder_sent_at = patch.depositReminderSentAt
+  }
+  if (patch.dayBeforeReminderSentAt !== undefined) {
+    out.day_before_reminder_sent_at = patch.dayBeforeReminderSentAt
+  }
   if (patch.discountCode !== undefined) out.discount_code = patch.discountCode
   if (patch.discountAmount !== undefined) out.discount_amount = patch.discountAmount
   if (patch.discountType !== undefined) out.discount_type = patch.discountType
@@ -248,6 +278,14 @@ function bookingToRpcPayload(booking: Booking): Record<string, unknown> {
     inspo_url: booking.inspoUrl ?? null,
     notes_accommodations: booking.notesAccommodations ?? null,
     media_consent: Boolean(booking.mediaConsent),
+    booker_name: booking.bookerName ?? null,
+    booker_phone: booking.bookerPhone ?? null,
+    booker_email: booking.bookerEmail ?? null,
+    is_gift: Boolean(booking.isGift),
+    gift_message: booking.giftMessage ?? null,
+    attendance_tag: booking.attendanceTag ?? null,
+    deposit_reminder_sent_at: booking.depositReminderSentAt ?? null,
+    day_before_reminder_sent_at: booking.dayBeforeReminderSentAt ?? null,
     discount_code: booking.discountCode ?? null,
     discount_amount: booking.discountAmount ?? null,
     discount_type: booking.discountType ?? null,

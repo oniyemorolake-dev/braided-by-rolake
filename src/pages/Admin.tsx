@@ -10,8 +10,10 @@ import {
   formatBraidBaseLabel,
   formatMediaConsentLabel,
   formatMobileLabel,
+  formatAttendanceLabel,
   getLengthOption,
   getServiceById,
+  type AttendanceTag,
   type Booking,
   type DiscountType,
 } from '../data'
@@ -33,10 +35,12 @@ import {
   type DiscountRecord,
 } from '../lib/discounts'
 import { AdminCalendar } from '../components/AdminCalendar'
+import { AdminClientNotes } from '../components/AdminClientNotes'
+import { AdminBlocksPanel, AdminQuickReplies, AdminRemindersPanel, AdminSummaryStrip } from '../components/AdminOps'
 import { notifyOwnerOfCancellation } from '../lib/notifications'
 
 type Tab = 'all' | 'pending' | 'awaiting' | 'confirmed'
-type Panel = 'bookings' | 'reviews' | 'discounts'
+type Panel = 'bookings' | 'ops' | 'reviews' | 'discounts'
 
 export function Admin() {
   const {
@@ -48,6 +52,7 @@ export function Admin() {
     declineOffer,
     counterOffer,
     markDepositReceived,
+    setAttendanceTag,
     clearAllBookings,
   } = useBookings()
 
@@ -279,6 +284,7 @@ export function Admin() {
         {(
           [
             ['bookings', 'Bookings'],
+            ['ops', 'Ops'],
             ['reviews', 'Reviews'],
             ['discounts', 'Discounts'],
           ] as const
@@ -287,7 +293,7 @@ export function Admin() {
             key={key}
             type="button"
             onClick={() => setPanel(key)}
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+            className={`flex-1 rounded-xl px-2 py-2.5 text-xs font-semibold sm:px-3 sm:text-sm ${
               panel === key ? 'bg-white text-brand shadow-sm' : 'text-brand/60'
             }`}
           >
@@ -296,7 +302,27 @@ export function Admin() {
         ))}
       </div>
 
-      {panel === 'discounts' ? (
+      {panel === 'bookings' && <AdminSummaryStrip bookings={bookings} />}
+
+      {panel === 'ops' ? (
+        <div className="mt-6 space-y-8">
+          <AdminSummaryStrip bookings={bookings} />
+          <AdminRemindersPanel
+            bookings={bookings}
+            onDone={() => void refreshBookings()}
+          />
+          <AdminBlocksPanel />
+          <div className="rounded-2xl border border-brand/10 bg-white px-4 py-4 text-sm text-brand/70">
+            <p className="font-semibold text-brand">Google Calendar (later)</p>
+            <p className="mt-2 leading-relaxed">
+              Full two-way sync needs a Google Cloud login setup (OAuth) — we&apos;ll do that last so
+              it doesn&apos;t block you. For now: block days off here, open Google Calendar from the
+              summary, and use <strong>Add to Google Calendar</strong> / <strong>.ics</strong> on each
+              booking card (free, no extra cost).
+            </p>
+          </div>
+        </div>
+      ) : panel === 'discounts' ? (
         <div className="mt-6 space-y-4">
           <p className="text-sm text-brand/60">
             All discount codes in one place. Public clients can only validate a single code — they
@@ -734,6 +760,21 @@ export function Admin() {
                         ? ' · client marked sent'
                         : ' · unpaid'}
                   </div>
+                  {(b.bookerName || b.isGift) && (
+                    <div className="sm:col-span-2 rounded-xl bg-lilac/50 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                        {b.isGift ? 'Gift booking' : 'Booked for someone else'}
+                      </p>
+                      <p className="mt-1 text-brand">
+                        Booker: {b.bookerName}
+                        {b.bookerPhone ? ` · ${b.bookerPhone}` : ''}
+                        {b.bookerEmail ? ` · ${b.bookerEmail}` : ''}
+                      </p>
+                      {b.giftMessage && (
+                        <p className="mt-1 text-sm text-brand/70">&ldquo;{b.giftMessage}&rdquo;</p>
+                      )}
+                    </div>
+                  )}
                   {b.note && (
                     <div className="sm:col-span-2 rounded-xl bg-lilac/50 px-3 py-2">
                       <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
@@ -791,6 +832,43 @@ export function Admin() {
                     <p className="mt-2 text-xs text-brand/50">
                       Marks this booking Confirmed and notifies you by email.
                     </p>
+                  </div>
+                )}
+
+                {(b.status === 'confirmed' ||
+                  b.status === 'awaiting_deposit' ||
+                  b.attendanceTag) && (
+                  <div className="mt-4 border-t border-brand/10 pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">
+                      Attendance · {formatAttendanceLabel(b.attendanceTag ?? undefined)}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(
+                        [
+                          ['on_time', 'On time'],
+                          ['late', 'Late'],
+                          ['no_show', 'No-show'],
+                        ] as const
+                      ).map(([tag, label]) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                            b.attendanceTag === tag
+                              ? 'bg-brand text-white'
+                              : 'border border-brand/15 bg-white text-brand/70 hover:border-accent/40'
+                          }`}
+                          onClick={() =>
+                            void setAttendanceTag(
+                              b.id,
+                              b.attendanceTag === tag ? null : (tag as AttendanceTag),
+                            )
+                          }
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -876,6 +954,13 @@ export function Admin() {
                     </div>
                   </div>
                 )}
+
+                <AdminQuickReplies booking={b} />
+                <AdminClientNotes
+                  clientName={b.clientName}
+                  phone={b.phone}
+                  email={b.email}
+                />
               </article>
             )
           })

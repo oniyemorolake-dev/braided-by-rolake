@@ -20,6 +20,7 @@ export type LengthId = 'shoulder' | 'midback' | 'waist' | 'butt'
 export type MobileZoneId = 'nw' | 'sw' | 'ne' | 'se' | 'nearby' | 'extended'
 export type DiscountType = 'review' | 'first_time' | 'referral' | 'loyalty' | 'promo'
 export type DiscountStatus = 'unused' | 'used' | 'disabled'
+export type AttendanceTag = 'on_time' | 'late' | 'no_show'
 
 export interface Service {
   id: string
@@ -107,6 +108,17 @@ export interface Booking {
   notesAccommodations?: string
   /** Client allows photos/videos of finished work for portfolio & social */
   mediaConsent?: boolean
+  /** Person who booked (when different from client getting braids) */
+  bookerName?: string
+  bookerPhone?: string
+  bookerEmail?: string
+  /** Gift appointment for the client named above */
+  isGift?: boolean
+  giftMessage?: string
+  /** Admin attendance record */
+  attendanceTag?: AttendanceTag | null
+  depositReminderSentAt?: string
+  dayBeforeReminderSentAt?: string
   /** Applied discount code (uppercase) */
   discountCode?: string
   discountAmount?: number
@@ -158,6 +170,9 @@ export const CONTACT_PHONE = '587-990-8645'
 /** Minimum notice (hours) to cancel or reschedule */
 export const CANCELLATION_HOURS = 48
 
+/** Hours after an appointment to report style concerns */
+export const ISSUE_CONTACT_HOURS = 24
+
 /** Prep checklist shown on confirmation, status page, and emails */
 export const PREP_INSTRUCTIONS = [
   'Come with hair freshly washed and blow-dried (unless a wash is booked)',
@@ -177,6 +192,88 @@ export const CANCELLATION_POLICY = {
     'Deposits are non-refundable for late cancellations or no-shows. Giving enough notice lets someone else take the spot and keeps the schedule fair for everyone.',
   ],
 } as const
+
+/** Full studio policies (FAQ / Policies page + booking agreement) */
+export const STUDIO_POLICY_SECTIONS = [
+  {
+    id: 'respect',
+    title: 'Respect & zero tolerance for abuse',
+    paragraphs: [
+      'Braided by Rolake is a calm, home-based studio. Every client and guest is expected to treat Rolake with respect — in person, by text, email, or on social media.',
+      'Abuse, harassment, threats, yelling, name-calling, discriminatory language, or any behaviour that makes the studio unsafe will not be tolerated. Appointments may be ended immediately, future bookings refused, and deposits forfeited in these cases.',
+      'Parents/guardians are responsible for kids’ behaviour during appointments. If a session cannot continue safely, it may be stopped and the deposit retained.',
+    ],
+  },
+  {
+    id: 'issues',
+    title: `Style concerns — contact within ${ISSUE_CONTACT_HOURS} hours`,
+    paragraphs: [
+      `If something feels wrong with your braids (tension, parting, finish, or anything that needs a fix), you must contact Rolake within ${ISSUE_CONTACT_HOURS} hours of your appointment — text ${CONTACT_PHONE || 'the number on your confirmation'} or email.`,
+      `After ${ISSUE_CONTACT_HOURS} hours, free adjustments are not guaranteed. Normal settling, frizz from weather/activity, or wear-and-tear after the window is outside complimentary fix territory.`,
+      'Please send a clear photo/video and a short description when you reach out so we can help quickly.',
+    ],
+  },
+  {
+    id: 'deposit',
+    title: 'Deposits & payment',
+    paragraphs: [
+      'A deposit via Interac e-Transfer is required to hold your spot ($10 under $50, $15 under $60, otherwise $30). Your booking is confirmed only once the deposit is marked received.',
+      'Remaining balance is paid in person at the appointment. Deposits are non-refundable for late cancellations, no-shows, or appointments ended due to disrespect or unsafe behaviour.',
+    ],
+  },
+  {
+    id: 'cancel',
+    title: 'Cancellations, reschedules & no-shows',
+    paragraphs: [
+      `Cancel or reschedule at least ${CANCELLATION_HOURS} hours before your appointment by text or email.`,
+      'Late cancellations and no-shows forfeit the deposit. Arriving more than 15 minutes late may mean the appointment is shortened or rescheduled so other clients are not delayed — the deposit still applies.',
+    ],
+  },
+  {
+    id: 'prep',
+    title: 'Hair prep & studio rules',
+    paragraphs: [
+      'Hair must be clean and pre-stretched before your appointment unless a take-out / dry-detangle service is booked.',
+      'Extensions are provided only on request — ask when you book so we can plan. No wash/shampoo services; take-outs and dry detangling only for hair-care appointments.',
+      'Mobile (I come to you) is available for an extra travel fee based on your area. Full studio address is shared only after deposit confirmation.',
+    ],
+  },
+] as const
+
+export const FAQ_ITEMS = [
+  {
+    q: 'How do I book?',
+    a: 'Pick a style on Services or Book, choose size/length/add-ons if needed, pick a date and time, then send the e-Transfer deposit. You’ll get a status link to track your booking.',
+  },
+  {
+    q: 'When is my booking fully confirmed?',
+    a: 'Once Rolake marks your Interac deposit as received. Until then the slot is held as awaiting deposit.',
+  },
+  {
+    q: 'What if I need to cancel or change my time?',
+    a: `Text or email at least ${CANCELLATION_HOURS} hours before. Late changes and no-shows keep the deposit non-refundable.`,
+  },
+  {
+    q: 'What if I’m unhappy with my braids?',
+    a: `Contact Rolake within ${ISSUE_CONTACT_HOURS} hours with photos and details. After that window, complimentary fixes are not guaranteed.`,
+  },
+  {
+    q: 'Is disrespect or abuse allowed?',
+    a: 'No. Abuse of any kind (in person or online) is zero-tolerance. Sessions can be ended and future bookings refused.',
+  },
+  {
+    q: 'Do I need to bring hair?',
+    a: 'Bring extensions if you have a preferred brand/colour, or ask ahead if you need hair provided. Prep: clean, detangled, pre-stretched hair unless otherwise booked.',
+  },
+  {
+    q: 'Where is the studio?',
+    a: 'Home studio in Calgary — the exact street address is shared after your deposit is confirmed, for privacy and safety.',
+  },
+  {
+    q: 'Can I get mobile service?',
+    a: 'Yes, for an extra travel fee by area (Uber/Lyft both ways). Choose mobile when booking and add your zone/address.',
+  },
+] as const
 
 export function formatCancelNotice(): string {
   const phone = CONTACT_PHONE.trim()
@@ -235,7 +332,141 @@ export const POLICIES = [
   'Mobile (I come to you) is available for an extra travel fee based on your location.',
   'Prices as listed - deposit by e-Transfer (no card fees). Remaining balance paid in person.',
   'No wash / shampoo services - take-outs and dry detangling only for hair-care appointments.',
+  `Zero tolerance for abuse or disrespect — in person or online. Sessions may be ended and deposits forfeited.`,
+  `Style concerns must be reported within ${ISSUE_CONTACT_HOURS} hours of your appointment for a complimentary look-over / fix when needed.`,
 ] as const
+
+/** Prep & aftercare page content (separate from policies) */
+export const PREP_AFTERCARE = {
+  title: 'Prep & aftercare',
+  intro:
+    'A little prep makes your appointment smoother — and good aftercare helps your braids last longer and stay comfortable.',
+  prepTitle: 'Before your appointment',
+  prep: [
+    'Wash and blow-dry your hair (unless you booked a take-out / dry-detangle only).',
+    'Detangle thoroughly — matted hair slows us down and can add time.',
+    'Come with hair product-free (no heavy oils, gels, or leave-ins unless we agreed otherwise).',
+    'Pre-stretch your hair if you can; it helps tension stay even.',
+    'Bring extensions if you’re providing them (colour + pack count). Ask ahead if you need hair provided.',
+    'Eat beforehand — long styles can take several hours. Kids: a nap before helps a lot.',
+    'Arrive on time. More than ~15 minutes late may mean a shorter session or a reschedule.',
+  ],
+  aftercareTitle: 'Aftercare — keep them cute',
+  aftercare: [
+    'Sleep with a satin/silk scarf or bonnet (or pillowcase) to reduce frizz.',
+    'Lightly moisturize your scalp — don’t soak the braids every day.',
+    'Avoid heavy oils that attract lint; blot, don’t rub, if they get wet.',
+    'Keep edge tension gentle — if something feels too tight, text within 24 hours.',
+    'For swimming or heavy sweat: rinse, pat dry, and scarf overnight.',
+  ],
+  returnTitle: 'When to come back',
+  returnTips: [
+    'Most protective styles look their best for about 4–8 weeks depending on hair growth, activity, and how you sleep.',
+    'Book a take-out when braids feel heavy, itchy beyond normal settling, or look very grown out.',
+    'Don’t wait until hair is severely matted — earlier take-outs are kinder on your strands.',
+    'Rebook your next install while you’re here or online so you keep your preferred time.',
+  ],
+} as const
+
+export type GalleryTag =
+  | 'knotless'
+  | 'box'
+  | 'cornrows'
+  | 'kids'
+  | 'men'
+  | 'twists'
+  | 'before-after'
+  | 'boho'
+
+export const GALLERY_FILTERS: { id: GalleryTag | 'all'; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'knotless', label: 'Knotless' },
+  { id: 'box', label: 'Box braids' },
+  { id: 'cornrows', label: 'Cornrows' },
+  { id: 'twists', label: 'Twists' },
+  { id: 'boho', label: 'Boho' },
+  { id: 'kids', label: 'Kids' },
+  { id: 'men', label: 'Men' },
+  { id: 'before-after', label: 'Before / after' },
+]
+
+/**
+ * Curated gallery cards. Drop matching JPGs in public/gallery/ or link Instagram posts.
+ * PhotoSlot shows a branded placeholder until the file exists.
+ */
+export const GALLERY_ITEMS: {
+  id: string
+  title: string
+  tags: GalleryTag[]
+  /** public path e.g. /gallery/knotless-1.jpg */
+  image?: string
+  caption?: string
+  href?: string
+}[] = [
+  {
+    id: 'knotless-1',
+    title: 'Knotless braids',
+    tags: ['knotless'],
+    image: '/gallery/knotless-1.jpg',
+    caption: 'Soft start, clean parts',
+  },
+  {
+    id: 'box-1',
+    title: 'Box braids',
+    tags: ['box'],
+    image: '/gallery/box-1.jpg',
+    caption: 'Classic protective install',
+  },
+  {
+    id: 'cornrows-1',
+    title: 'Cornrows',
+    tags: ['cornrows'],
+    image: '/gallery/cornrows-1.jpg',
+    caption: 'Neat rows, lasting finish',
+  },
+  {
+    id: 'boho-1',
+    title: 'Boho knotless',
+    tags: ['knotless', 'boho'],
+    image: '/gallery/boho-1.jpg',
+    caption: 'Loose ends, soft vibe',
+  },
+  {
+    id: 'twists-1',
+    title: 'Twists',
+    tags: ['twists'],
+    image: '/gallery/twists-1.jpg',
+    caption: 'Low-manipulation twists',
+  },
+  {
+    id: 'kids-1',
+    title: 'Kids styles',
+    tags: ['kids'],
+    image: '/gallery/kids-1.jpg',
+    caption: 'Gentle tension for little ones',
+  },
+  {
+    id: 'men-1',
+    title: 'Men’s braids',
+    tags: ['men', 'cornrows'],
+    image: '/gallery/men-1.jpg',
+    caption: 'Clean men’s installs',
+  },
+  {
+    id: 'ba-1',
+    title: 'Before & after',
+    tags: ['before-after', 'knotless'],
+    image: '/gallery/before-after-1.jpg',
+    caption: 'Transformation sets',
+  },
+]
+
+export function formatAttendanceLabel(tag?: AttendanceTag): string {
+  if (tag === 'late') return 'Late'
+  if (tag === 'no_show') return 'No-show'
+  if (tag === 'on_time') return 'On time'
+  return '—'
+}
 
 /** Photo / video consent copy shown at checkout */
 export const MEDIA_CONSENT = {

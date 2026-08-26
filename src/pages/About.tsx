@@ -31,6 +31,14 @@ export function About() {
 
           <div className="mt-8">
             <CancellationPolicySection />
+            <p className="mt-3 text-sm text-brand/60">
+              Full house rules — including respect, deposits, and the 24-hour style-concern window — are
+              on the{' '}
+              <Link to="/policies" className="font-medium text-accent hover:underline">
+                FAQ &amp; policies
+              </Link>{' '}
+              page.
+            </p>
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">

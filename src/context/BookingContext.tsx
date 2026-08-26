@@ -19,6 +19,7 @@ import {
   getDepositForPrice,
   getServiceById,
   isCustomQuoteService,
+  type AttendanceTag,
   type Booking,
   type BookingStatus,
   type BraidSizeId,
@@ -65,6 +66,12 @@ export interface CreateListedInput {
   notesAccommodations?: string
   /** true = allow portfolio/social photos & videos; false = do not share */
   mediaConsent: boolean
+  /** Optional: person booking for someone else */
+  bookerName?: string
+  bookerPhone?: string
+  bookerEmail?: string
+  isGift?: boolean
+  giftMessage?: string
   /** Optional exact discount code (one per booking) */
   discountCode?: string
   /** Auto-apply first-time WELCOME when eligible and no code entered */
@@ -98,6 +105,8 @@ interface BookingContextValue {
   markDepositPaid: (id: string) => Promise<void>
   /** Admin: deposit received → status confirmed */
   markDepositReceived: (id: string) => Promise<void>
+  /** Admin: tag late / no-show / on time */
+  setAttendanceTag: (id: string, tag: AttendanceTag | null) => Promise<void>
   getBooking: (id: string) => Booking | undefined
   clearAllBookings: () => Promise<void>
 }
@@ -242,6 +251,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
       mediaConsent: Boolean(input.mediaConsent),
+      bookerName: input.bookerName?.trim() || undefined,
+      bookerPhone: input.bookerPhone?.trim() || undefined,
+      bookerEmail: input.bookerEmail?.trim() || undefined,
+      isGift: Boolean(input.isGift),
+      giftMessage: input.giftMessage?.trim() || undefined,
       discountCode,
       discountAmount,
       discountType,
@@ -296,6 +310,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
       mediaConsent: Boolean(input.mediaConsent),
+      bookerName: input.bookerName?.trim() || undefined,
+      bookerPhone: input.bookerPhone?.trim() || undefined,
+      bookerEmail: input.bookerEmail?.trim() || undefined,
+      isGift: Boolean(input.isGift),
+      giftMessage: input.giftMessage?.trim() || undefined,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -343,6 +362,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       inspoUrl: input.inspoUrl,
       notesAccommodations: input.notesAccommodations?.trim() || undefined,
       mediaConsent: Boolean(input.mediaConsent),
+      bookerName: input.bookerName?.trim() || undefined,
+      bookerPhone: input.bookerPhone?.trim() || undefined,
+      bookerEmail: input.bookerEmail?.trim() || undefined,
+      isGift: Boolean(input.isGift),
+      giftMessage: input.giftMessage?.trim() || undefined,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -464,6 +488,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const setAttendanceTag = useCallback(async (id: string, tag: AttendanceTag | null) => {
+    const saved = await updateBookingRemote(id, { attendanceTag: tag }, 'admin')
+    setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)))
+  }, [])
+
   const getBooking = useCallback(
     (id: string) => bookings.find((b) => b.id === id),
     [bookings],
@@ -490,6 +519,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       clientWalkAway,
       markDepositPaid,
       markDepositReceived,
+      setAttendanceTag,
       getBooking,
       clearAllBookings,
     }),
@@ -507,6 +537,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       clientWalkAway,
       markDepositPaid,
       markDepositReceived,
+      setAttendanceTag,
       getBooking,
       clearAllBookings,
     ],

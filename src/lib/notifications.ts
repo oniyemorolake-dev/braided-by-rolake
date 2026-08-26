@@ -66,6 +66,10 @@ export async function notifyOwner(booking: Booking): Promise<{ ok: boolean; erro
       : null,
     `When: ${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`,
     `Client: ${booking.clientName} · ${booking.phone} · ${booking.email}`,
+    booking.bookerName
+      ? `Booked by: ${booking.bookerName} · ${booking.bookerPhone || ''} · ${booking.bookerEmail || ''}${booking.isGift ? ' (GIFT)' : ''}`
+      : null,
+    booking.giftMessage ? `Gift message: ${booking.giftMessage}` : null,
     priceLine,
     '',
     `CUSTOM / NOTE: ${booking.note || '(none)'}`,
@@ -254,6 +258,11 @@ export async function notifyClientBooking(
   const statusUrl = statusUrlFor(booking.id)
   const deposit = booking.depositAmount ?? CONFIG.depositAmount
   const when = `${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`
+  const notifyEmail = booking.bookerEmail?.trim() || booking.email
+  const notifyName = booking.bookerName?.trim() || booking.clientName
+  const forLine = booking.bookerName
+    ? `For: ${booking.clientName}${booking.isGift ? ' (gift)' : ''}`
+    : null
 
   const isConfirmed = booking.status === 'confirmed'
   const subject = isConfirmed
@@ -262,9 +271,10 @@ export async function notifyClientBooking(
 
   const message = isConfirmed
     ? [
-        `Hi ${booking.clientName},`,
+        `Hi ${notifyName},`,
         '',
         `Your deposit was received and your appointment is confirmed!`,
+        forLine,
         '',
         `Service: ${service?.name ?? booking.serviceId}`,
         `When: ${when}`,
@@ -279,11 +289,14 @@ export async function notifyClientBooking(
         formatCancelNotice(),
         '',
         '— Braided by Rolake',
-      ].join('\n')
+      ]
+        .filter((line): line is string => line != null)
+        .join('\n')
     : [
-        `Hi ${booking.clientName},`,
+        `Hi ${notifyName},`,
         '',
         `Thanks for booking with Braided by Rolake! Your time slot is held.`,
+        forLine,
         '',
         `Service: ${service?.name ?? booking.serviceId}`,
         `When: ${when}`,
@@ -297,18 +310,20 @@ export async function notifyClientBooking(
         CONFIG.depositInstructions,
         '',
         '— Braided by Rolake',
-      ].join('\n')
+      ]
+        .filter((line): line is string => line != null)
+        .join('\n')
 
   const payload = {
     access_key: key,
     subject,
     from_name: 'Braided by Rolake',
-    email: booking.email,
-    name: booking.clientName,
+    email: notifyEmail,
+    name: notifyName,
     message,
     status_url: statusUrl,
     booking_id: booking.id,
-    ccemail: booking.email,
+    ccemail: notifyEmail,
   }
 
   try {
@@ -500,3 +515,109 @@ export async function notifyOwnerOfCancellation(
     return { ok: false, error: errMessage }
   }
 }
+
+async function sendWeb3ClientEmail(input: {
+  toEmail: string
+  toName: string
+  subject: string
+  message: string
+  bookingId: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const key = CONFIG.web3formsAccessKey
+  if (!key || key.includes('PASTE_YOUR')) {
+    return { ok: false, error: 'Access key not configured' }
+  }
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        access_key: key,
+        subject: input.subject,
+        from_name: 'Braided by Rolake',
+        email: input.toEmail,
+        name: input.toName,
+        message: input.message,
+        booking_id: input.bookingId,
+        ccemail: input.toEmail,
+      }),
+    })
+    const data = (await res.json()) as { success?: boolean; message?: string }
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message || 'Email send failed' }
+    }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' }
+  }
+}
+
+/** Free email reminder: still awaiting deposit (Web3Forms — no SMS cost). */
+export async function notifyDepositReminder(
+  booking: Booking,
+): Promise<{ ok: boolean; error?: string }> {
+  const deposit = booking.depositAmount ?? CONFIG.depositAmount
+  const toEmail = booking.bookerEmail?.trim() || booking.email
+  const toName = booking.bookerName?.trim() || booking.clientName
+  const service = getServiceById(booking.serviceId)
+  const when = `${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`
+  return sendWeb3ClientEmail({
+    toEmail,
+    toName,
+    subject: `Reminder: deposit still needed · Braided by Rolake`,
+    message: [
+      `Hi ${toName},`,
+      '',
+      `Friendly reminder — your booking for ${service?.name ?? 'your style'} on ${when} is still waiting on the deposit.`,
+      booking.bookerName ? `Appointment for: ${booking.clientName}` : null,
+      '',
+      `Please send $${deposit} Interac e-Transfer to ${CONFIG.depositEmail} (name + date in the message).`,
+      CONFIG.depositInstructions,
+      '',
+      `Status link: ${statusUrlFor(booking.id)}`,
+      '',
+      '— Braided by Rolake',
+    ]
+      .filter((line): line is string => line != null)
+      .join('\n'),
+    bookingId: booking.id,
+  })
+}
+
+/** Free email reminder: appointment is tomorrow. */
+export async function notifyDayBeforeReminder(
+  booking: Booking,
+): Promise<{ ok: boolean; error?: string }> {
+  const toEmail = booking.bookerEmail?.trim() || booking.email
+  const toName = booking.bookerName?.trim() || booking.clientName
+  const service = getServiceById(booking.serviceId)
+  const when = `${formatDateLabel(booking.date)} · ${formatSlotLabel(booking.slot)}`
+  const prepBlock = PREP_INSTRUCTIONS.map((line, i) => `${i + 1}. ${line}`).join('\n')
+  return sendWeb3ClientEmail({
+    toEmail,
+    toName,
+    subject: `See you tomorrow — Braided by Rolake`,
+    message: [
+      `Hi ${toName},`,
+      '',
+      `Just a heads-up: ${service?.name ?? 'your appointment'} is tomorrow — ${when}.`,
+      booking.bookerName ? `For: ${booking.clientName}` : null,
+      '',
+      'Prep checklist:',
+      prepBlock,
+      '',
+      `Status / details: ${statusUrlFor(booking.id)}`,
+      '',
+      formatCancelNotice(),
+      '',
+      '— Braided by Rolake',
+    ]
+      .filter((line): line is string => line != null)
+      .join('\n'),
+    bookingId: booking.id,
+  })
+}
+

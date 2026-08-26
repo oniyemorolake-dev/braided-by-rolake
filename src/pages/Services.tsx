@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   ADDONS,
   CONFIG,
@@ -237,6 +238,11 @@ export function Services() {
             <li key={p}>• {p}</li>
           ))}
         </ul>
+        <p>
+          <Link to="/policies" className="font-medium text-accent hover:underline">
+            Read full FAQ &amp; policies →
+          </Link>
+        </p>
         <p>
           <strong className="text-brand">Deposit:</strong> e-Transfer {formatPrice(10)} (under{' '}
           {formatPrice(50)}), {formatPrice(15)} (under {formatPrice(60)}), or{' '}
