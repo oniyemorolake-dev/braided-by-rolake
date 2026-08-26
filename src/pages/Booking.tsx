@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   BRAID_BASE_OPTIONS,
@@ -146,6 +146,17 @@ export function Booking() {
       cancelled = true
     }
   }, [])
+
+  // Booking is one route — jump to top whenever the wizard step changes
+  useLayoutEffect(() => {
+    const html = document.documentElement
+    const previous = html.style.scrollBehavior
+    html.style.scrollBehavior = 'auto'
+    window.scrollTo(0, 0)
+    html.scrollTop = 0
+    document.body.scrollTop = 0
+    html.style.scrollBehavior = previous
+  }, [step])
 
   const service = serviceId ? getServiceById(serviceId) : undefined
   const isQuote = isCustomQuoteService(service)

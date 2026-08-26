@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { BookingProvider } from './context/BookingContext'
 import { Layout } from './components/Layout'
+import { ScrollToTop } from './components/ScrollToTop'
 import { Home } from './pages/Home'
 import { Services } from './pages/Services'
 import { Gallery } from './pages/Gallery'
@@ -16,6 +17,7 @@ export default function App() {
   return (
     <BookingProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Home />} />
