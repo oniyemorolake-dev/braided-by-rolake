@@ -439,6 +439,20 @@ export const GALLERY_ITEMS: {
     caption: 'Low-manipulation twists',
   },
   {
+    id: 'natural-1',
+    title: 'Natural hair styles',
+    tags: ['box', 'cornrows', 'twists'],
+    image: '/gallery/natural-1.jpg',
+    caption: 'Box, cornrows & twists on natural hair',
+  },
+  {
+    id: 'miracle-1',
+    title: 'Miracle knots',
+    tags: ['twists', 'box'],
+    image: '/gallery/miracle-knots-1.jpg',
+    caption: 'Protective knots without braiding hair',
+  },
+  {
     id: 'kids-1',
     title: 'Kids styles',
     tags: ['kids'],
@@ -876,7 +890,7 @@ export const SERVICES: Service[] = [
     price: 160,
     durationHours: 4,
     description:
-      'Classic protective braids with clean parts and lasting hold. Sized to your preference - medium is most popular.',
+      'Classic protective braids with clean parts and lasting hold (typically with braiding hair). Sized to your preference - medium is most popular. For natural hair only, book Box Braids (Natural Hair).',
     minOffer: 130,
     featured: true,
     hasSizes: true,
@@ -908,7 +922,7 @@ export const SERVICES: Service[] = [
     price: 90,
     durationHours: 2,
     description:
-      'Neat feed-in cornrows that grow gracefully into your length. Great for workouts, travel, or a sleek look. Medium size included — small/smedium cost more, large is $10 less.',
+      'Neat feed-in cornrows that grow gracefully into your length (with braiding hair). Great for workouts, travel, or a sleek look. Medium size included — small/smedium cost more, large is $10 less. For natural hair only, book Cornrows (Natural Hair).',
     minOffer: 70,
     hasSizes: true,
   },
@@ -940,7 +954,7 @@ export const SERVICES: Service[] = [
     price: 165,
     durationHours: 4,
     description:
-      'Soft two-strand twists with defined parts. Protective, versatile, and easy to style up or down.',
+      'Soft two-strand twists with defined parts (typically with braiding hair). Protective, versatile, and easy to style up or down.',
     minOffer: 135,
     featured: true,
     hasSizes: true,
@@ -965,6 +979,85 @@ export const SERVICES: Service[] = [
     minOffer: 140,
     hasSizes: true,
   },
+
+  // --- Women’s natural hair (no braiding hair / extensions) ---
+  {
+    id: 'natural-box',
+    name: 'Box Braids (Natural Hair)',
+    price: 110,
+    durationHours: 3.5,
+    description:
+      'Classic box braids using your own natural hair only — no braiding hair or extensions. Clean parts, comfortable tension. Great for a protective break without added length.',
+    minOffer: 90,
+    featured: true,
+    hasSizes: true,
+    hasLength: false,
+    allowedAddonIds: ['beads', 'styling-gel'],
+  },
+  {
+    id: 'natural-cornrows',
+    name: 'Cornrows (Natural Hair)',
+    price: 75,
+    durationHours: 1.75,
+    description:
+      'Neat cornrows on your natural hair — no feed-in extensions. Workout-friendly and easy to maintain. Medium size included; small/smedium cost more, large is $10 less.',
+    minOffer: 60,
+    featured: true,
+    hasSizes: true,
+    hasLength: false,
+    allowedAddonIds: ['beads', 'styling-gel'],
+  },
+  {
+    id: 'natural-twists',
+    name: 'Twists (Natural Hair)',
+    price: 95,
+    durationHours: 2.5,
+    description:
+      'Two-strand twists on your natural hair only — soft parts, no braiding hair. Ideal for wash day, low manipulation, and healthy protective styling.',
+    minOffer: 75,
+    featured: true,
+    hasSizes: true,
+    hasLength: false,
+    allowedAddonIds: ['beads', 'styling-gel'],
+  },
+  {
+    id: 'miracle-knots',
+    name: 'Miracle Knots',
+    price: 130,
+    durationHours: 3.5,
+    description:
+      'Miracle knots on natural hair — neat knotted sections that look full and stay protective without braiding hair. Sized to your preference; bring inspo for parting.',
+    minOffer: 105,
+    featured: true,
+    hasSizes: true,
+    hasLength: false,
+    allowedAddonIds: ['beads', 'styling-gel'],
+  },
+  {
+    id: 'flat-twists',
+    name: 'Flat Twists (Natural Hair)',
+    price: 85,
+    durationHours: 2,
+    description:
+      'Flat twists along the scalp using your natural hair — sleek, protective, and great under wigs or as a finished look. Design / number of twists welcome in your note.',
+    minOffer: 70,
+    hasSizes: false,
+    hasLength: false,
+    allowedAddonIds: ['beads', 'styling-gel'],
+  },
+  {
+    id: 'bantu-knots',
+    name: 'Bantu Knots (Natural Hair)',
+    price: 70,
+    durationHours: 1.5,
+    description:
+      'Classic Bantu knots on natural hair for a bold protective look (or as a set for knot-out curls later). No braiding hair needed.',
+    minOffer: 55,
+    hasSizes: false,
+    hasLength: false,
+    allowedAddonIds: ['styling-gel'],
+  },
+
   {
     id: 'soft-locs',
     name: 'Soft Locs',
@@ -1442,7 +1535,11 @@ export function getMenServices(): Service[] {
 }
 
 export function getSizeOptionsForService(service: Service): SizeOption[] {
-  if (service.id === 'cornrows' || service.id === 'men-cornrows') {
+  if (
+    service.id === 'cornrows' ||
+    service.id === 'natural-cornrows' ||
+    service.id === 'men-cornrows'
+  ) {
     return CORNROW_SIZE_OPTIONS
   }
   if (service.category === 'men') return MEN_SIZE_OPTIONS
