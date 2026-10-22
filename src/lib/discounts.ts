@@ -14,11 +14,15 @@ import {
 } from '../data'
 import { isSupabaseConfigured, supabase } from './supabase'
 
+export type DiscountValueKind = 'fixed' | 'percent'
+
 export interface DiscountRecord {
   id: string
   code: string
   type: DiscountType
+  /** Dollar amount, or percent number (e.g. 15 = 15%) when valueKind is percent */
   amount: number
+  valueKind: DiscountValueKind
   status: DiscountStatus
   ownerEmail?: string
   usedByEmail?: string
@@ -46,6 +50,7 @@ interface DiscountRow {
   code: string
   type: DiscountType
   amount: number
+  value_kind?: string | null
   status: DiscountStatus
   owner_email: string | null
   used_by_email: string | null
@@ -61,6 +66,7 @@ function rowToDiscount(row: DiscountRow): DiscountRecord {
     code: row.code,
     type: row.type,
     amount: Number(row.amount),
+    valueKind: row.value_kind === 'percent' ? 'percent' : 'fixed',
     status: row.status,
     ownerEmail: row.owner_email ?? undefined,
     usedByEmail: row.used_by_email ?? undefined,
@@ -230,6 +236,7 @@ export async function adminCreateDiscount(input: {
   code: string
   type: DiscountType
   amount: number
+  valueKind?: DiscountValueKind
   ownerEmail?: string
   note?: string
   password?: string
@@ -244,9 +251,16 @@ export async function adminCreateDiscount(input: {
     p_amount: input.amount,
     p_owner_email: input.ownerEmail?.trim() || null,
     p_note: input.note?.trim() || null,
+    p_value_kind: input.valueKind ?? 'fixed',
   })
   if (error) throw new Error(error.message)
   return rowToDiscount(data as DiscountRow)
+}
+
+/** Display amount as $15 or 15% */
+export function formatDiscountValue(d: Pick<DiscountRecord, 'amount' | 'valueKind'>): string {
+  if (d.valueKind === 'percent') return `${d.amount}% off`
+  return `$${d.amount} off`
 }
 
 export async function adminSetDiscountStatus(

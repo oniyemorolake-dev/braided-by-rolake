@@ -32,7 +32,9 @@ import {
   adminListDiscounts,
   adminSetDiscountStatus,
   discountTypeLabel,
+  formatDiscountValue,
   type DiscountRecord,
+  type DiscountValueKind,
 } from '../lib/discounts'
 import { AdminCalendar } from '../components/AdminCalendar'
 import { AdminClientNotes } from '../components/AdminClientNotes'
@@ -74,6 +76,7 @@ export function Admin() {
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState<DiscountType>('promo')
   const [newAmount, setNewAmount] = useState('15')
+  const [newValueKind, setNewValueKind] = useState<DiscountValueKind>('fixed')
   const [newOwnerEmail, setNewOwnerEmail] = useState('')
   const [creatingDiscount, setCreatingDiscount] = useState(false)
 
@@ -336,17 +339,24 @@ export function Admin() {
               e.preventDefault()
               const amount = Number(newAmount)
               if (!newCode.trim() || !Number.isFinite(amount) || amount <= 0) return
+              if (newValueKind === 'percent' && amount > 100) {
+                setDiscountsError('Percent must be 100 or less.')
+                return
+              }
               setCreatingDiscount(true)
+              setDiscountsError('')
               void adminCreateDiscount({
                 code: newCode,
                 type: newType,
                 amount,
+                valueKind: newValueKind,
                 ownerEmail: newOwnerEmail || undefined,
                 note: newType === 'referral' ? 'invite' : undefined,
               })
                 .then(() => {
                   setNewCode('')
                   setNewOwnerEmail('')
+                  setNewAmount(newValueKind === 'percent' ? '10' : '15')
                   return refreshDiscounts()
                 })
                 .catch((err) => {
@@ -377,23 +387,42 @@ export function Admin() {
                   ),
                 )}
               </select>
+              <select
+                className="input-field !py-2"
+                value={newValueKind}
+                onChange={(e) => {
+                  const kind = e.target.value as DiscountValueKind
+                  setNewValueKind(kind)
+                  setNewAmount(kind === 'percent' ? '10' : '15')
+                }}
+              >
+                <option value="fixed">$ Dollar off</option>
+                <option value="percent">% Percent off</option>
+              </select>
               <input
                 className="input-field !py-2"
                 type="number"
                 min={1}
-                placeholder="Amount $"
+                max={newValueKind === 'percent' ? 100 : undefined}
+                step={newValueKind === 'percent' ? 1 : 1}
+                placeholder={newValueKind === 'percent' ? 'Percent (e.g. 10)' : 'Amount $'}
                 value={newAmount}
                 onChange={(e) => setNewAmount(e.target.value)}
                 required
               />
               <input
-                className="input-field !py-2"
+                className="input-field !py-2 sm:col-span-2"
                 type="email"
                 placeholder="Owner email (loyalty/review/referral)"
                 value={newOwnerEmail}
                 onChange={(e) => setNewOwnerEmail(e.target.value)}
               />
             </div>
+            <p className="text-xs text-brand/50">
+              {newValueKind === 'percent'
+                ? `Clients get ${newAmount || '—'}% off their subtotal (won’t go below the price floor).`
+                : `Clients get $${newAmount || '—'} off (won’t go below the price floor).`}
+            </p>
             <button type="submit" className="btn-primary !px-4 !py-2 text-sm" disabled={creatingDiscount}>
               {creatingDiscount ? 'Creating…' : 'Create discount'}
             </button>
@@ -412,7 +441,7 @@ export function Admin() {
                   <div>
                     <p className="font-mono text-lg font-semibold text-brand">{d.code}</p>
                     <p className="text-sm text-brand/60">
-                      {discountTypeLabel(d.type)} · {formatPrice(d.amount)}
+                      {discountTypeLabel(d.type)} · {formatDiscountValue(d)}
                       {d.note ? ` · ${d.note}` : ''}
                     </p>
                     <p className="mt-1 text-xs text-brand/45">
