@@ -1656,8 +1656,10 @@ export function getAddon(id: string): Addon | undefined {
 }
 
 /**
- * Boho strands + “with extensions” only make sense on cornrow-based styles
+ * Boho strands only make sense on cornrow-based styles
  * (not on Boho/Goddess knotless — those already include the look).
+ * “With extensions” (+$15) is NOT offered on adult styles — those already use
+ * braiding hair. Natural = no extensions. Men use a separate extensions toggle.
  */
 const CORNROW_STYLE_IDS = new Set([
   'cornrows',
@@ -1672,7 +1674,7 @@ const CORNROW_STYLE_IDS = new Set([
   'men-ponytail',
 ])
 
-const CORNROW_ONLY_ADDON_IDS = new Set(['boho', 'extensions'])
+const CORNROW_ONLY_ADDON_IDS = new Set(['boho'])
 
 function isCornrowStyle(service: Service): boolean {
   if (service.category === 'natural') return false
@@ -1688,13 +1690,16 @@ export function getAddonsForService(service: Service): Addon[] {
         .map((id) => getAddon(id))
         .filter((a): a is Addon => Boolean(a))
 
-  // Natural hair = your hair only — never offer extensions / boho strands
+  // Adult / natural never get the “With extensions” upcharge (adult already uses hair;
+  // natural is your hair only). Men handle extensions in the booking toggle.
+  const withoutExt = base.filter((a) => a.id !== 'extensions')
+
   if (service.category === 'natural') {
-    return base.filter((a) => !CORNROW_ONLY_ADDON_IDS.has(a.id))
+    return withoutExt.filter((a) => a.id !== 'boho')
   }
 
-  if (isCornrowStyle(service)) return base
-  return base.filter((a) => !CORNROW_ONLY_ADDON_IDS.has(a.id))
+  if (isCornrowStyle(service)) return withoutExt
+  return withoutExt.filter((a) => !CORNROW_ONLY_ADDON_IDS.has(a.id))
 }
 
 export function getMobileZone(id: MobileZoneId): MobileZone | undefined {

@@ -672,7 +672,7 @@ export function Booking() {
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Men’s styles</p>
             <p className="mb-3 text-xs text-brand/55">
-              Size included · optional extensions (length only if chosen).
+              Size options · optional +$15 extensions (length only if chosen).
             </p>
             <div className="space-y-3">
               {menServices.map((s) => (

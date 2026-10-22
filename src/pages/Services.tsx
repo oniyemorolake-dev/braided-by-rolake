@@ -103,8 +103,8 @@ export function Services() {
             Adult styles
           </h2>
           <p className="mt-1 text-sm text-brand/60">
-            Protective styles that typically use braiding hair / extensions (length add-ons when
-            listed).
+            Protective styles with braiding hair (no extra “with extensions” fee). Length add-ons
+            when listed. For your hair only, book under Natural.
           </p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {adult.map((s) => (
