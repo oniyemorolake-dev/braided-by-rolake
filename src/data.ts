@@ -308,7 +308,7 @@ export const CONFIG: BusinessConfig = {
   taxLabel: 'GST',
   taxNote:
     'Prices as listed. Deposit by Interac e-Transfer - no card fees. GST only if Rolake is GST-registered.',
-  workingDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
+  workingDays: [0, 1, 2, 3, 4, 5, 6], // Sun–Sat
   workStartHour: 9,
   workEndHour: 19,
   bufferMinutes: 60,
