@@ -1106,11 +1106,11 @@ export const SERVICES: Service[] = [
   {
     id: 'interlocking',
     name: 'Loc Interlocking (Maintenance)',
-    price: 140,
+    price: 100,
     durationHours: 3,
     description:
       'Retighten established dread / loc roots by interlocking — neat parts, clean scalp line. Your natural locs only (no extensions, no starter install). Size = parting density: smaller parts take longer and cost more. Medium is the listed base.',
-    minOffer: 110,
+    minOffer: 80,
     featured: true,
     hasSizes: true,
     hasLength: false,
@@ -1347,11 +1347,11 @@ export const SERVICES: Service[] = [
   {
     id: 'men-interlocking',
     name: 'Men’s Loc Interlocking (Maintenance)',
-    price: 110,
+    price: 100,
     durationHours: 2.5,
     description:
       'Retighten established men’s dread / loc roots by interlocking — clean parts and scalp line. Natural locs only (no extensions, not a starter set). Size = density/work; medium is the listed base.',
-    minOffer: 85,
+    minOffer: 80,
     featured: true,
     hasSizes: true,
     hasLength: false,
