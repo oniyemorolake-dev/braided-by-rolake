@@ -1098,6 +1098,19 @@ export const SERVICES: Service[] = [
     hasSizes: true,
   },
   {
+    id: 'interlocking',
+    name: 'Dread Locs Interlocking',
+    price: 100,
+    durationHours: 2.5,
+    description:
+      'Interlocking maintenance for natural dread locs — neat roots, tidy parts, comfortable tension. Size reflects parting density (how much work is needed). Locs must already be established; not a starter install.',
+    minOffer: 80,
+    featured: true,
+    hasSizes: true,
+    hasLength: false,
+    allowedAddonIds: [],
+  },
+  {
     id: 'french-curls',
     name: 'French Curls',
     price: 190,
@@ -1322,6 +1335,20 @@ export const SERVICES: Service[] = [
     allowedAddonIds: ['extensions'],
     category: 'men',
     featured: true,
+  },
+  {
+    id: 'men-interlocking',
+    name: 'Men’s Dread Locs Interlocking',
+    price: 80,
+    durationHours: 2,
+    description:
+      'Interlocking maintenance for men’s natural dread locs — clean roots and parts. Size reflects density/work. For established locs only (not a starter set). No extensions add-on.',
+    minOffer: 65,
+    featured: true,
+    hasSizes: true,
+    hasLength: false,
+    allowedAddonIds: [],
+    category: 'men',
   },
 
   // --- Kids (ages 4-11) ---
