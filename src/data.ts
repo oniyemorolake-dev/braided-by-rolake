@@ -902,10 +902,12 @@ export const SERVICES: Service[] = [
     price: 215,
     durationHours: 6,
     description:
-      'Knotless braids with soft human-hair strands for that effortless goddess look. Perfect for vacations and special moments.',
+      'Knotless braids with soft human-hair strands for that effortless goddess look — boho strands are included in this style. Perfect for vacations and special moments.',
     minOffer: 175,
     featured: true,
     hasSizes: true,
+    /** Boho is built in — no boho-strands / extensions add-on */
+    allowedAddonIds: ['curls', 'beads', 'color-mix', 'styling-gel'],
   },
   {
     id: 'box',
@@ -1107,12 +1109,12 @@ export const SERVICES: Service[] = [
     price: 190,
     durationHours: 5,
     description:
-      'Choose a box braid or knotless base, pick your size and length, finished with soft French-curl ends for bounce and volume. Optional boho strands.',
+      'Choose a box braid or knotless base, pick your size and length, finished with soft French-curl ends for bounce and volume.',
     minOffer: 155,
     featured: true,
     hasSizes: true,
     hasBraidBase: true,
-    allowedAddonIds: ['boho'],
+    allowedAddonIds: ['curls', 'beads', 'color-mix', 'styling-gel'],
   },
   {
     id: 'french-plaits',
@@ -1582,12 +1584,41 @@ export function getAddon(id: string): Addon | undefined {
   return ADDONS.find((a) => a.id === id)
 }
 
+/**
+ * Boho strands + “with extensions” only make sense on cornrow-based styles
+ * (not on Boho/Goddess knotless — those already include the look).
+ */
+const CORNROW_STYLE_IDS = new Set([
+  'cornrows',
+  'natural-cornrows',
+  'half-cornrows',
+  'pick-and-drop',
+  'lemonade',
+  'fulani',
+  'ponytail',
+  'cornrows-wig',
+  'men-cornrows',
+  'men-design',
+  'men-ponytail',
+])
+
+const CORNROW_ONLY_ADDON_IDS = new Set(['boho', 'extensions'])
+
+function isCornrowStyle(service: Service): boolean {
+  if (CORNROW_STYLE_IDS.has(service.id)) return true
+  return /cornrow/i.test(service.id) || /cornrow/i.test(service.name)
+}
+
 /** Add-ons offered for a service. Length is always separate when applicable. */
 export function getAddonsForService(service: Service): Addon[] {
-  if (!service.allowedAddonIds) return ADDONS
-  return service.allowedAddonIds
-    .map((id) => getAddon(id))
-    .filter((a): a is Addon => Boolean(a))
+  const base = !service.allowedAddonIds
+    ? ADDONS
+    : service.allowedAddonIds
+        .map((id) => getAddon(id))
+        .filter((a): a is Addon => Boolean(a))
+
+  if (isCornrowStyle(service)) return base
+  return base.filter((a) => !CORNROW_ONLY_ADDON_IDS.has(a.id))
 }
 
 export function getMobileZone(id: MobileZoneId): MobileZone | undefined {
