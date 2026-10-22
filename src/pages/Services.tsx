@@ -16,6 +16,7 @@ import {
   getCareServices,
   getKidsServices,
   getMenServices,
+  getNaturalServices,
 } from '../data'
 import { filterServices } from '../lib/serviceSearch'
 import { ServiceCard } from '../components/ServiceCard'
@@ -29,19 +30,22 @@ export function Services() {
   const [category, setCategory] = useState<ServiceCategoryFilter>('all')
 
   const adult = useMemo(() => filterServices(getAdultServices(), query), [query])
+  const natural = useMemo(() => filterServices(getNaturalServices(), query), [query])
   const men = useMemo(() => filterServices(getMenServices(), query), [query])
   const care = useMemo(() => filterServices(getCareServices(), query), [query])
   const kids = useMemo(() => filterServices(getKidsServices(), query), [query])
-  const totalMatches = adult.length + men.length + care.length + kids.length
+  const totalMatches = adult.length + natural.length + men.length + care.length + kids.length
   const searching = query.trim().length > 0
 
   const showAdult = category === 'all' || category === 'adult'
+  const showNatural = category === 'all' || category === 'natural'
   const showMen = category === 'all' || category === 'men'
   const showCare = category === 'all' || category === 'care'
   const showKids = category === 'all' || category === 'kids'
 
   const visibleCount =
     (showAdult ? adult.length : 0) +
+    (showNatural ? natural.length : 0) +
     (showMen ? men.length : 0) +
     (showCare ? care.length : 0) +
     (showKids ? kids.length : 0)
@@ -77,6 +81,7 @@ export function Services() {
             counts={{
               all: totalMatches,
               adult: adult.length,
+              natural: natural.length,
               men: men.length,
               care: care.length,
               kids: kids.length,
@@ -97,9 +102,30 @@ export function Services() {
           <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
             Adult styles
           </h2>
-          <p className="mt-1 text-sm text-brand/60">Protective styles for teens and adults.</p>
+          <p className="mt-1 text-sm text-brand/60">
+            Protective styles that typically use braiding hair / extensions (length add-ons when
+            listed).
+          </p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {adult.map((s) => (
+              <ServiceCard key={s.id} service={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showNatural && natural.length > 0 && (
+        <section id="natural-styles" className="mt-14 scroll-mt-36">
+          <h2 className="font-display text-2xl font-semibold text-brand sm:text-3xl">
+            Natural hair
+          </h2>
+          <p className="mt-1 text-sm text-brand/60">
+            Your hair only — <strong>no braiding hair and no extensions</strong>. Box braids,
+            cornrows, twists, miracle knots, gel styles, interlocking, and more. Length is whatever
+            your natural hair is (no length add-on).
+          </p>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {natural.map((s) => (
               <ServiceCard key={s.id} service={s} />
             ))}
           </div>
@@ -129,8 +155,8 @@ export function Services() {
             Hair care &amp; finishing
           </h2>
           <p className="mt-1 text-sm text-brand/60">
-            Take-outs, no-wash detangling, gel styles, and basic straighten — no shampoo/wash
-            services.
+            Take-outs, no-wash detangling, and basic straighten — no shampoo/wash services. Gel
+            styles live under Natural hair.
           </p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {care.map((s) => (

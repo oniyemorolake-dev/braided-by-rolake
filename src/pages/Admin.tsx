@@ -305,7 +305,14 @@ export function Admin() {
         ))}
       </div>
 
-      {panel === 'bookings' && <AdminSummaryStrip bookings={bookings} />}
+      {panel === 'bookings' && (
+        <div className="mt-6 space-y-6">
+          <AdminSummaryStrip bookings={bookings} />
+          <div className="rounded-2xl border border-accent/25 bg-lilac/40 p-4">
+            <AdminBlocksPanel />
+          </div>
+        </div>
+      )}
 
       {panel === 'ops' ? (
         <div className="mt-6 space-y-8">
@@ -319,9 +326,9 @@ export function Admin() {
             <p className="font-semibold text-brand">Google Calendar (later)</p>
             <p className="mt-2 leading-relaxed">
               Full two-way sync needs a Google Cloud login setup (OAuth) — we&apos;ll do that last so
-              it doesn&apos;t block you. For now: block days off here, open Google Calendar from the
-              summary, and use <strong>Add to Google Calendar</strong> / <strong>.ics</strong> on each
-              booking card (free, no extra cost).
+              it doesn&apos;t block you. For now: block days off under Bookings or here, open Google
+              Calendar from the summary, and use <strong>Add to Google Calendar</strong> /{' '}
+              <strong>.ics</strong> on each booking card (free, no extra cost).
             </p>
           </div>
         </div>

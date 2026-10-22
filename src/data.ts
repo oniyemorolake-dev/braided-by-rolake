@@ -42,8 +42,8 @@ export interface Service {
   hasBraidBase?: boolean
   /** Extension length add-on. Default true for adult styles; set false when length doesn’t apply. */
   hasLength?: boolean
-  /** Adult styles vs kids (ages 4-11) vs hair care extras vs men’s braids */
-  category?: 'adult' | 'kids' | 'care' | 'men'
+  /** Adult (with hair) vs natural (no extensions) vs kids vs care vs men */
+  category?: 'adult' | 'natural' | 'kids' | 'care' | 'men'
   /** Custom / special design - no listed price; client requests a quote */
   quoteOnly?: boolean
   /** If set, only these add-ons are offered (length is separate). Omit = all add-ons. Empty = none. */
@@ -999,82 +999,88 @@ export const SERVICES: Service[] = [
     hasSizes: true,
   },
 
-  // --- Women’s natural hair (no braiding hair / extensions) ---
+  // --- Natural hair (women) — your hair only, no braiding hair / extensions ---
   {
     id: 'natural-box',
-    name: 'Box Braids (Natural Hair)',
-    price: 110,
+    name: 'Box Braids — Natural',
+    price: 100,
     durationHours: 3.5,
     description:
-      'Classic box braids using your own natural hair only — no braiding hair or extensions. Clean parts, comfortable tension. Great for a protective break without added length.',
-    minOffer: 90,
+      'Box braids on your own natural hair. No braiding hair and no extensions — length is whatever your hair is. Clean parts, comfortable tension.',
+    minOffer: 80,
     featured: true,
     hasSizes: true,
     hasLength: false,
     allowedAddonIds: ['beads'],
+    category: 'natural',
   },
   {
     id: 'natural-cornrows',
-    name: 'Cornrows (Natural Hair)',
-    price: 75,
+    name: 'Cornrows — Natural',
+    price: 70,
     durationHours: 1.75,
     description:
-      'Neat cornrows on your natural hair — no feed-in extensions. Workout-friendly and easy to maintain. Medium size included; small/smedium cost more, large is $10 less.',
-    minOffer: 60,
+      'Cornrows on your natural hair only — no feed-in hair, no extensions. Medium size included; small/smedium cost more, large is $10 less.',
+    minOffer: 55,
     featured: true,
     hasSizes: true,
     hasLength: false,
     allowedAddonIds: ['beads'],
+    category: 'natural',
   },
   {
     id: 'natural-twists',
-    name: 'Twists (Natural Hair)',
-    price: 95,
+    name: 'Twists — Natural',
+    price: 90,
     durationHours: 2.5,
     description:
-      'Two-strand twists on your natural hair only — soft parts, no braiding hair. Ideal for wash day, low manipulation, and healthy protective styling.',
-    minOffer: 75,
+      'Two-strand twists on your natural hair only — no braiding hair, no extensions. Soft parts, low manipulation, wash-day friendly.',
+    minOffer: 70,
     featured: true,
     hasSizes: true,
     hasLength: false,
     allowedAddonIds: ['beads'],
+    category: 'natural',
   },
   {
     id: 'miracle-knots',
-    name: 'Miracle Knots',
-    price: 130,
+    name: 'Miracle Knots — Natural',
+    price: 120,
     durationHours: 3.5,
     description:
-      'Miracle knots on natural hair — neat knotted sections that look full and stay protective without braiding hair. Sized to your preference; bring inspo for parting.',
-    minOffer: 105,
+      'Miracle knots on natural hair only — no extensions. Neat knotted sections; bring inspo for parting. Size reflects density/work.',
+    minOffer: 95,
     featured: true,
     hasSizes: true,
     hasLength: false,
     allowedAddonIds: ['beads'],
+    category: 'natural',
   },
   {
     id: 'flat-twists',
-    name: 'Flat Twists (Natural Hair)',
-    price: 85,
+    name: 'Flat Twists — Natural',
+    price: 80,
     durationHours: 2,
     description:
-      'Flat twists along the scalp using your natural hair — sleek, protective, and great under wigs or as a finished look. Design / number of twists welcome in your note.',
-    minOffer: 70,
+      'Flat twists on your natural hair — no extensions. Sleek, protective, great under a wig or as a finished look.',
+    minOffer: 65,
     hasSizes: false,
     hasLength: false,
     allowedAddonIds: ['beads'],
+    category: 'natural',
   },
   {
     id: 'bantu-knots',
-    name: 'Bantu Knots (Natural Hair)',
-    price: 70,
+    name: 'Bantu Knots — Natural',
+    price: 65,
     durationHours: 1.5,
     description:
-      'Classic Bantu knots on natural hair for a bold protective look (or as a set for knot-out curls later). No braiding hair needed.',
-    minOffer: 55,
+      'Bantu knots on natural hair only — no braiding hair. Bold protective look or a set for a knot-out later.',
+    minOffer: 50,
     hasSizes: false,
     hasLength: false,
     allowedAddonIds: [],
+    category: 'natural',
   },
 
   {
@@ -1103,12 +1109,13 @@ export const SERVICES: Service[] = [
     price: 100,
     durationHours: 2.5,
     description:
-      'Interlocking maintenance for natural dread locs — neat roots, tidy parts, comfortable tension. Size reflects parting density (how much work is needed). Locs must already be established; not a starter install.',
+      'Interlocking maintenance for natural dread locs — neat roots, tidy parts. Your locs only (no extensions). Size reflects density. Established locs only — not a starter install.',
     minOffer: 80,
     featured: true,
     hasSizes: true,
     hasLength: false,
     allowedAddonIds: [],
+    category: 'natural',
   },
   {
     id: 'french-curls',
@@ -1241,16 +1248,17 @@ export const SERVICES: Service[] = [
   },
   {
     id: 'gel-styles',
-    name: 'Gel Styles',
+    name: 'Gel Styles — Natural',
     price: 90,
     durationHours: 1.5,
     description:
-      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included. Book this as its own style (not an add-on).',
+      'Slicked gel looks on natural hair — finger waves, wet look, or polished finish. Gel included. Your hair only; no braiding hair or extensions. Book as its own style (not an add-on).',
     minOffer: 75,
     hasSizes: false,
     hasLength: false,
     allowedAddonIds: [],
     featured: true,
+    category: 'natural',
   },
   {
     id: 'basic-straighten',
@@ -1565,8 +1573,16 @@ export function getServiceById(id: string): Service | undefined {
 
 export function getAdultServices(): Service[] {
   return SERVICES.filter(
-    (s) => s.category !== 'kids' && s.category !== 'care' && s.category !== 'men',
+    (s) =>
+      s.category !== 'kids' &&
+      s.category !== 'care' &&
+      s.category !== 'men' &&
+      s.category !== 'natural',
   )
+}
+
+export function getNaturalServices(): Service[] {
+  return SERVICES.filter((s) => s.category === 'natural')
 }
 
 export function getKidsServices(): Service[] {

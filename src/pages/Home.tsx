@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CONFIG, SERVICES, getMenServices } from '../data'
+import { CONFIG, SERVICES, getMenServices, getNaturalServices } from '../data'
 import { ServiceCard } from '../components/ServiceCard'
 import { ReviewsSection } from '../components/ReviewsSection'
 
@@ -20,8 +20,14 @@ const reasons = [
 
 export function Home() {
   const featured = SERVICES.filter(
-    (s) => s.featured && s.category !== 'care' && s.category !== 'kids' && s.category !== 'men',
+    (s) =>
+      s.featured &&
+      s.category !== 'care' &&
+      s.category !== 'kids' &&
+      s.category !== 'men' &&
+      s.category !== 'natural',
   ).slice(0, 6)
+  const naturalStyles = getNaturalServices().filter((s) => s.featured).slice(0, 4)
   const menStyles = getMenServices()
 
   return (
@@ -95,9 +101,42 @@ export function Home() {
         </div>
       </section>
 
+      {/* Natural hair */}
+      {naturalStyles.length > 0 && (
+        <section className="bg-brand-section">
+          <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20">
+            <div className="mb-9 text-center sm:text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent/80">
+                Your hair only
+              </p>
+              <h2 className="mt-2 font-display text-3xl font-semibold text-brand sm:text-4xl">
+                Natural hair
+              </h2>
+              <p className="mt-2 max-w-lg text-brand/60">
+                Box braids, cornrows, twists, and more — <strong>no extensions</strong>, no braiding
+                hair. Priced for natural installs.
+              </p>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              {naturalStyles.map((s) => (
+                <ServiceCard key={s.id} service={s} compact />
+              ))}
+            </div>
+            <div className="mt-9 text-center">
+              <Link
+                to="/services"
+                className="text-sm font-semibold text-accent hover:underline"
+              >
+                See all natural styles →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Men’s styles */}
       {menStyles.length > 0 && (
-        <section className="bg-brand-section">
+        <section>
           <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20">
             <div className="mb-9 text-center sm:text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent/80">

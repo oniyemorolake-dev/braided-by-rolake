@@ -168,10 +168,12 @@ export function AdminBlocksPanel({ onChanged }: { onChanged?: () => void }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-display text-xl font-semibold text-brand">Block off time</h2>
+        <h2 className="font-display text-xl font-semibold text-brand">
+          Days I&apos;m not working
+        </h2>
         <p className="mt-1 text-sm text-brand/60">
-          Blocked days/times disappear from the public booking calendar. Use this for days off,
-          errands, or personal plans — then mirror them in Google Calendar if you like.
+          Block full days or hours so clients <strong>cannot</strong> book them. Use this for days
+          off, appointments, or personal plans.
         </p>
       </div>
       {error && <p className="text-sm text-rose-600">{error}</p>}

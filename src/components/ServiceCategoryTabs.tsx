@@ -1,8 +1,9 @@
-export type ServiceCategoryFilter = 'all' | 'adult' | 'men' | 'care' | 'kids'
+export type ServiceCategoryFilter = 'all' | 'adult' | 'natural' | 'men' | 'care' | 'kids'
 
 const TABS: { id: ServiceCategoryFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'adult', label: 'Adult' },
+  { id: 'natural', label: 'Natural' },
   { id: 'men', label: 'Men' },
   { id: 'care', label: 'Care' },
   { id: 'kids', label: 'Kids' },

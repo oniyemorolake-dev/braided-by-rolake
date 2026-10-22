@@ -33,6 +33,7 @@ import {
   getKidsServices,
   getLengthOption,
   getMenServices,
+  getNaturalServices,
   getMobileZone,
   getAddonsForService,
   getServiceById,
@@ -203,6 +204,10 @@ export function Booking() {
     () => filterServices(getAdultServices(), serviceQuery),
     [serviceQuery],
   )
+  const naturalServices = useMemo(
+    () => filterServices(getNaturalServices(), serviceQuery),
+    [serviceQuery],
+  )
   const menServices = useMemo(
     () => filterServices(getMenServices(), serviceQuery),
     [serviceQuery],
@@ -216,13 +221,19 @@ export function Booking() {
     [serviceQuery],
   )
   const serviceMatchCount =
-    adultServices.length + menServices.length + careServices.length + kidsServices.length
+    adultServices.length +
+    naturalServices.length +
+    menServices.length +
+    careServices.length +
+    kidsServices.length
   const showAdultServices = serviceCategory === 'all' || serviceCategory === 'adult'
+  const showNaturalServices = serviceCategory === 'all' || serviceCategory === 'natural'
   const showMenServices = serviceCategory === 'all' || serviceCategory === 'men'
   const showCareServices = serviceCategory === 'all' || serviceCategory === 'care'
   const showKidsServices = serviceCategory === 'all' || serviceCategory === 'kids'
   const visibleServiceCount =
     (showAdultServices ? adultServices.filter((s) => !isCustomQuoteService(s)).length : 0) +
+    (showNaturalServices ? naturalServices.length : 0) +
     (showMenServices ? menServices.length : 0) +
     (showCareServices ? careServices.length : 0) +
     (showKidsServices ? kidsServices.length : 0)
@@ -576,6 +587,7 @@ export function Booking() {
                 counts={{
                   all: serviceMatchCount,
                   adult: adultServices.filter((s) => !isCustomQuoteService(s)).length,
+                  natural: naturalServices.length,
                   men: menServices.length,
                   care: careServices.length,
                   kids: kidsServices.length,
@@ -598,6 +610,39 @@ export function Booking() {
               {adultServices
                 .filter((s) => !isCustomQuoteService(s))
                 .map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => selectService(s.id)}
+                  className="card-soft flex w-full items-center gap-3 p-3 text-left transition hover:border-accent/40"
+                >
+                  <PhotoSlot
+                    src={s.image ?? servicePhotoPath(s.id)}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-xl"
+                    label="Soon"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-brand">{s.name}</p>
+                    <p className="text-xs text-brand/55">
+                      from {formatPrice(s.price)} · {formatDuration(s.durationHours)}
+                    </p>
+                  </div>
+                  <span className="text-accent">→</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          )}
+
+          {showNaturalServices && naturalServices.length > 0 && (
+          <div>
+            <p className="mb-1 text-sm font-medium text-brand">Natural hair</p>
+            <p className="mb-3 text-xs text-brand/55">
+              Your hair only — no braiding hair, no extensions, no length add-on.
+            </p>
+            <div className="space-y-3">
+              {naturalServices.map((s) => (
                 <button
                   key={s.id}
                   type="button"
@@ -660,7 +705,8 @@ export function Booking() {
           <div>
             <p className="mb-1 text-sm font-medium text-brand">Hair care &amp; finishing</p>
             <p className="mb-3 text-xs text-brand/55">
-              Take-outs, detangle, gel styles, and basic straighten — no wash services.
+              Take-outs, detangle, and basic straighten — no wash services. Gel styles are under
+              Natural hair.
             </p>
             <div className="space-y-3">
               {careServices.map((s) => (
@@ -1007,6 +1053,14 @@ export function Booking() {
             <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
               No wash service — take-out, detangle, gel, or straighten only. Length and braid
               add-ons don&apos;t apply.
+            </p>
+          )}
+
+          {service.category === 'natural' && (
+            <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
+              <strong>Natural hair style:</strong> your own hair only —{' '}
+              <strong>no braiding hair and no extensions</strong>. There is no length add-on; the
+              finish is the length of your natural hair.
             </p>
           )}
 
