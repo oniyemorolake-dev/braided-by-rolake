@@ -676,6 +676,36 @@ export const MEN_SIZE_OPTIONS: SizeOption[] = [
   },
 ]
 
+/**
+ * Loc interlocking — medium = listed $100; denser parts cost more, larger parts less.
+ */
+export const INTERLOCKING_SIZE_OPTIONS: SizeOption[] = [
+  {
+    id: 'small',
+    label: 'Small',
+    priceAdjust: 40,
+    durationAdjustHours: 1,
+  },
+  {
+    id: 'smedium',
+    label: 'Smedium',
+    priceAdjust: 20,
+    durationAdjustHours: 0.5,
+  },
+  {
+    id: 'medium',
+    label: 'Medium',
+    priceAdjust: 0,
+    durationAdjustHours: 0,
+  },
+  {
+    id: 'large',
+    label: 'Large',
+    priceAdjust: -15,
+    durationAdjustHours: -0.5,
+  },
+]
+
 /** Cornrows / men’s cornrows — medium included; small/smedium more; large $10 less */
 export const CORNROW_SIZE_OPTIONS: SizeOption[] = [
   {
@@ -1109,7 +1139,7 @@ export const SERVICES: Service[] = [
     price: 100,
     durationHours: 3,
     description:
-      'Retighten established dread / loc roots by interlocking — neat parts, clean scalp line. Your natural locs only (no extensions, no starter install). Size = parting density: smaller parts take longer and cost more. Medium is the listed base.',
+      'Retighten established dread / loc roots by interlocking — neat parts, clean scalp line. Your natural locs only (no extensions, no starter install). Medium $100; small +$40, smedium +$20, large −$15.',
     minOffer: 80,
     featured: true,
     hasSizes: true,
@@ -1350,7 +1380,7 @@ export const SERVICES: Service[] = [
     price: 100,
     durationHours: 2.5,
     description:
-      'Retighten established men’s dread / loc roots by interlocking — clean parts and scalp line. Natural locs only (no extensions, not a starter set). Size = density/work; medium is the listed base.',
+      'Retighten established men’s dread / loc roots by interlocking — clean parts and scalp line. Natural locs only (no extensions, not a starter set). Medium $100; small +$40, smedium +$20, large −$15.',
     minOffer: 80,
     featured: true,
     hasSizes: true,
@@ -1598,6 +1628,9 @@ export function getMenServices(): Service[] {
 }
 
 export function getSizeOptionsForService(service: Service): SizeOption[] {
+  if (service.id === 'interlocking' || service.id === 'men-interlocking') {
+    return INTERLOCKING_SIZE_OPTIONS
+  }
   if (
     service.id === 'cornrows' ||
     service.id === 'natural-cornrows' ||
