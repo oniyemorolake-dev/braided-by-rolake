@@ -807,12 +807,6 @@ export const ADDONS: Addon[] = [
     description: 'Two or more colours blended through the set',
   },
   {
-    id: 'styling-gel',
-    name: 'Styling gel',
-    price: 10,
-    description: 'Extra gel for edges, parts, and a smoother finish on your style',
-  },
-  {
     id: 'extensions',
     name: 'With extensions',
     price: 15,
@@ -907,7 +901,7 @@ export const SERVICES: Service[] = [
     featured: true,
     hasSizes: true,
     /** Boho is built in — no boho-strands / extensions add-on */
-    allowedAddonIds: ['curls', 'beads', 'color-mix', 'styling-gel'],
+    allowedAddonIds: ['curls', 'beads', 'color-mix'],
   },
   {
     id: 'box',
@@ -1017,7 +1011,7 @@ export const SERVICES: Service[] = [
     featured: true,
     hasSizes: true,
     hasLength: false,
-    allowedAddonIds: ['beads', 'styling-gel'],
+    allowedAddonIds: ['beads'],
   },
   {
     id: 'natural-cornrows',
@@ -1030,7 +1024,7 @@ export const SERVICES: Service[] = [
     featured: true,
     hasSizes: true,
     hasLength: false,
-    allowedAddonIds: ['beads', 'styling-gel'],
+    allowedAddonIds: ['beads'],
   },
   {
     id: 'natural-twists',
@@ -1043,7 +1037,7 @@ export const SERVICES: Service[] = [
     featured: true,
     hasSizes: true,
     hasLength: false,
-    allowedAddonIds: ['beads', 'styling-gel'],
+    allowedAddonIds: ['beads'],
   },
   {
     id: 'miracle-knots',
@@ -1056,7 +1050,7 @@ export const SERVICES: Service[] = [
     featured: true,
     hasSizes: true,
     hasLength: false,
-    allowedAddonIds: ['beads', 'styling-gel'],
+    allowedAddonIds: ['beads'],
   },
   {
     id: 'flat-twists',
@@ -1068,7 +1062,7 @@ export const SERVICES: Service[] = [
     minOffer: 70,
     hasSizes: false,
     hasLength: false,
-    allowedAddonIds: ['beads', 'styling-gel'],
+    allowedAddonIds: ['beads'],
   },
   {
     id: 'bantu-knots',
@@ -1080,7 +1074,7 @@ export const SERVICES: Service[] = [
     minOffer: 55,
     hasSizes: false,
     hasLength: false,
-    allowedAddonIds: ['styling-gel'],
+    allowedAddonIds: [],
   },
 
   {
@@ -1114,7 +1108,7 @@ export const SERVICES: Service[] = [
     featured: true,
     hasSizes: true,
     hasBraidBase: true,
-    allowedAddonIds: ['curls', 'beads', 'color-mix', 'styling-gel'],
+    allowedAddonIds: ['curls', 'beads', 'color-mix'],
   },
   {
     id: 'french-plaits',
@@ -1238,10 +1232,11 @@ export const SERVICES: Service[] = [
     price: 90,
     durationHours: 1.5,
     description:
-      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included for this service. From $90.',
+      'Slicked gel looks — finger waves, wet-look styles, or a polished gel finish on natural hair. Gel included. Book this as its own style (not an add-on).',
     minOffer: 75,
     hasSizes: false,
-    category: 'care',
+    hasLength: false,
+    allowedAddonIds: [],
     featured: true,
   },
   {
