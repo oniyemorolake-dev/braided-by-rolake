@@ -645,21 +645,21 @@ export const SIZE_OPTIONS: SizeOption[] = [
 ]
 
 /**
- * Men’s parting sizes — included in the listed price (no size upcharge),
- * except cornrows which use CORNROW_SIZE_OPTIONS.
- * Smaller still takes a bit longer.
+ * Men’s parting sizes — same price steps as women’s SIZE_OPTIONS
+ * (medium = listed price; small/smedium more; large less).
+ * Cornrows use CORNROW_SIZE_OPTIONS; interlocking uses INTERLOCKING_SIZE_OPTIONS.
  */
 export const MEN_SIZE_OPTIONS: SizeOption[] = [
   {
     id: 'small',
     label: 'Small',
-    priceAdjust: 0,
+    priceAdjust: 40,
     durationAdjustHours: 0.75,
   },
   {
     id: 'smedium',
     label: 'Smedium',
-    priceAdjust: 0,
+    priceAdjust: 20,
     durationAdjustHours: 0.35,
   },
   {
@@ -671,7 +671,7 @@ export const MEN_SIZE_OPTIONS: SizeOption[] = [
   {
     id: 'large',
     label: 'Large',
-    priceAdjust: 0,
+    priceAdjust: -15,
     durationAdjustHours: -0.35,
   },
 ]
