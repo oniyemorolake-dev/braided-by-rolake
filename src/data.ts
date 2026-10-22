@@ -1661,7 +1661,6 @@ export function getAddon(id: string): Addon | undefined {
  */
 const CORNROW_STYLE_IDS = new Set([
   'cornrows',
-  'natural-cornrows',
   'half-cornrows',
   'pick-and-drop',
   'lemonade',
@@ -1676,6 +1675,7 @@ const CORNROW_STYLE_IDS = new Set([
 const CORNROW_ONLY_ADDON_IDS = new Set(['boho', 'extensions'])
 
 function isCornrowStyle(service: Service): boolean {
+  if (service.category === 'natural') return false
   if (CORNROW_STYLE_IDS.has(service.id)) return true
   return /cornrow/i.test(service.id) || /cornrow/i.test(service.name)
 }
@@ -1687,6 +1687,11 @@ export function getAddonsForService(service: Service): Addon[] {
     : service.allowedAddonIds
         .map((id) => getAddon(id))
         .filter((a): a is Addon => Boolean(a))
+
+  // Natural hair = your hair only — never offer extensions / boho strands
+  if (service.category === 'natural') {
+    return base.filter((a) => !CORNROW_ONLY_ADDON_IDS.has(a.id))
+  }
 
   if (isCornrowStyle(service)) return base
   return base.filter((a) => !CORNROW_ONLY_ADDON_IDS.has(a.id))
@@ -1708,6 +1713,8 @@ export function isCareService(service: Service): boolean {
 export function serviceUsesLength(service: Service): boolean {
   if (service.hasLength === false) return false
   if (isCareService(service)) return false
+  // Natural hair styles: no length / extension add-on
+  if (service.category === 'natural') return false
   // Men’s styles: length only when explicitly enabled (extension length)
   if (service.category === 'men') return service.hasLength === true
   return true

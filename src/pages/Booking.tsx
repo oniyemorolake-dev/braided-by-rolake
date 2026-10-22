@@ -882,7 +882,9 @@ export function Booking() {
             </div>
           )}
 
-          {!isQuote && service.category === 'men' && (
+          {!isQuote &&
+            service.category === 'men' &&
+            (service.allowedAddonIds?.includes('extensions') ?? true) && (
             <div className="space-y-5">
               <div>
                 <label className="mb-2 block text-sm font-medium text-brand">Extensions</label>
@@ -1064,7 +1066,8 @@ export function Booking() {
             </p>
           )}
 
-          {service.category === 'men' && (
+          {service.category === 'men' &&
+            (service.allowedAddonIds?.includes('extensions') ?? true) && (
             <p className="rounded-xl bg-lilac/60 px-3 py-2 text-sm text-brand/70">
               Men&apos;s bookings: choose <strong>size</strong>, then <strong>No extension</strong>{' '}
               or <strong>With extensions</strong>. Extension length only appears if you want
