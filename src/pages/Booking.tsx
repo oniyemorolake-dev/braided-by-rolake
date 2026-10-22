@@ -1282,7 +1282,7 @@ export function Booking() {
               <label className="mb-1.5 block text-sm font-medium text-brand">
                 Start time
                 <span className="ml-1 font-normal text-brand/50">
-                  (needs ~{formatDuration(durationHours)} + buffer)
+                  (hourly 9 AM–6 PM, incl. 1 PM · ~{formatDuration(durationHours)} + buffer)
                 </span>
               </label>
               {slots.length === 0 ? (

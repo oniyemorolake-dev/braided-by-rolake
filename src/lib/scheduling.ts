@@ -55,8 +55,24 @@ function rangesOverlap(
 }
 
 /**
+ * Every hourly start time in the working day (e.g. 9:00 … 6:00 PM), including 1:00 PM.
+ */
+export function getAllDayStartSlots(): string[] {
+  const slots: string[] = []
+  const interval = CONFIG.slotIntervalMinutes
+  const workStart = CONFIG.workStartHour * 60
+  const workEnd = CONFIG.workEndHour * 60
+  for (let start = workStart; start < workEnd; start += interval) {
+    slots.push(minutesToSlot(start))
+  }
+  return slots
+}
+
+/**
  * Available start slots for a service on a date.
- * Working hours − existing bookings (duration + buffer) − unfittable starts.
+ * Full day hourly grid (incl. 1:00 PM) − past times − booking conflicts − schedule blocks.
+ * Longer styles can still start in the afternoon; they are not hidden just because
+ * they run past the listed closing hour.
  */
 export function getAvailableSlots(
   date: string,
@@ -73,10 +89,7 @@ export function getAvailableSlots(
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const isToday = todayIso === date
 
-  const workStart = CONFIG.workStartHour * 60
-  const workEnd = CONFIG.workEndHour * 60
   const durationMins = service.durationHours * 60
-  const interval = CONFIG.slotIntervalMinutes
 
   const occupied = bookings
     .filter(
@@ -89,21 +102,21 @@ export function getAvailableSlots(
 
   const slots: string[] = []
 
-  for (let start = workStart; start + durationMins <= workEnd; start += interval) {
+  for (const slot of getAllDayStartSlots()) {
+    const start = slotToMinutes(slot)
+
     if (isToday) {
       const currentMins = now.getHours() * 60 + now.getMinutes()
       if (start < currentMins + 60) continue
     }
 
     const endWithBuffer = start + durationMins + CONFIG.bufferMinutes
-    if (start + durationMins > workEnd) continue
 
     const conflicts = occupied.some((occ) =>
       rangesOverlap(start, endWithBuffer, occ.start, occ.end),
     )
     if (conflicts) continue
 
-    const slot = minutesToSlot(start)
     if (slotConflictsWithBlocks(date, slot, durationMins + CONFIG.bufferMinutes, blocks)) {
       continue
     }

@@ -122,9 +122,10 @@ export function About() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand/45">Hours</p>
             <p className="mt-1 text-sm text-brand/75">
-              Monday–Saturday · 9:00 AM – 7:00 PM
+              Sunday–Saturday · 9:00 AM – 7:00 PM
               <br />
-              Longer styles often take a full morning or afternoon — book early for weekend spots.
+              Start times every hour (including 1:00 PM). Longer styles often take a full morning
+              or afternoon — book early for weekend spots.
             </p>
           </div>
         </aside>
